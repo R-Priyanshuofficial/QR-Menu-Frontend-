@@ -16,11 +16,16 @@ import {
   Usb,
   Bluetooth,
   Check,
+  Bell,
+  Volume2,
+  VolumeX,
   X as XIcon
 } from 'lucide-react';
 import { Card } from '@shared/components/Card';
 import { Button } from '@shared/components/Button';
 import toast from 'react-hot-toast';
+import { useSocket } from '@shared/contexts/SocketContext';
+import { playNotificationSound } from '@shared/utils/pushNotifications';
 
 const DEFAULT_SETTINGS = {
   gst: {
@@ -34,7 +39,8 @@ const DEFAULT_SETTINGS = {
     name: 'QR Menu Restaurant',
     address: '',
     phone: '',
-    gstNumber: ''
+    gstNumber: '',
+    logo: ''
   },
   printer: {
     enabled: false,
@@ -61,6 +67,7 @@ export const Settings = () => {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const { soundEnabled, setNotificationSoundEnabled } = useSocket();
 
   useEffect(() => {
     loadSettings();
@@ -165,10 +172,48 @@ export const Settings = () => {
     setHasChanges(true);
   };
 
+  const handleLogoUpload = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setSettings(prev => ({
+        ...prev,
+        restaurant: { ...prev.restaurant, logo: reader.result }
+      }));
+      setHasChanges(true);
+    };
+    reader.onerror = () => {
+      toast.error('Failed to read logo file');
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
+  };
+
+  const handleLogoRemove = () => {
+    setSettings(prev => ({
+      ...prev,
+      restaurant: { ...prev.restaurant, logo: '' }
+    }));
+    setHasChanges(true);
+  };
+
   const resetToDefault = () => {
     setSettings(DEFAULT_SETTINGS);
     setHasChanges(true);
     toast.success('Settings reset to default');
+  };
+
+  const handleNotificationSoundToggle = () => {
+    const nextValue = !soundEnabled;
+    setNotificationSoundEnabled(nextValue);
+    toast.success(`Notification sound ${nextValue ? 'enabled' : 'muted'}`);
+  };
+
+  const handleTestNotificationSound = () => {
+    playNotificationSound();
+    toast.success('Playing notification sound');
   };
 
   // Printer handlers
@@ -315,6 +360,64 @@ export const Settings = () => {
             {loading ? 'Saving...' : 'Save Changes'}
           </Button>
         </div>
+      </motion.div>
+
+      {/* Notification Preferences */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <Card>
+          <div className="p-6 flex flex-col gap-4">
+            <div className="flex items-center gap-2">
+              <Bell className="w-5 h-5 text-purple-600" />
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Notifications & Alerts
+              </h2>
+            </div>
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+              <div>
+                <p className="font-medium text-gray-900 dark:text-gray-100">
+                  Play sound for new orders
+                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 max-w-2xl">
+                  Hear a chime whenever a new order notification arrives. Disable this if you prefer silent alerts.
+                </p>
+                {!soundEnabled && (
+                  <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-2 flex items-center gap-1">
+                    <VolumeX className="w-4 h-4" />
+                    Sound is muted. You will still see in-app and browser notifications.
+                  </p>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleNotificationSoundToggle}
+                  className={`relative inline-flex h-9 w-16 items-center rounded-full transition-colors ${
+                    soundEnabled ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
+                  }`}
+                >
+                  <span
+                    className={`inline-flex items-center justify-center h-7 w-7 transform rounded-full bg-white text-gray-600 transition-transform ${
+                      soundEnabled ? 'translate-x-7' : 'translate-x-1'
+                    }`}
+                  >
+                    {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+                  </span>
+                </button>
+                <Button
+                  variant="outline"
+                  onClick={handleTestNotificationSound}
+                  disabled={!soundEnabled}
+                  className="gap-2"
+                >
+                  <Volume2 className="w-4 h-4" />
+                  Test Sound
+                </Button>
+              </div>
+            </div>
+          </div>
+        </Card>
       </motion.div>
 
       {/* Changes Indicator */}
@@ -532,6 +635,55 @@ export const Settings = () => {
                     placeholder="Enter restaurant name"
                     className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 dark:text-gray-100"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Restaurant Logo
+                  </label>
+                  <div className="flex flex-col lg:flex-row items-start gap-4">
+                    <div className="w-28 h-28 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 flex items-center justify-center bg-gray-50 dark:bg-gray-800 overflow-hidden">
+                      {settings.restaurant.logo ? (
+                        <img
+                          src={settings.restaurant.logo}
+                          alt="Restaurant logo preview"
+                          className="object-contain w-full h-full"
+                        />
+                      ) : (
+                        <span className="text-xs text-gray-400 text-center px-2">
+                          No logo
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex-1 w-full space-y-2">
+                      <div className="flex flex-wrap gap-2">
+                        <label className="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg cursor-pointer hover:bg-primary-700 text-sm">
+                          Upload Logo
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleLogoUpload}
+                          />
+                        </label>
+                        {settings.restaurant.logo && (
+                          <Button variant="outline" size="sm" onClick={handleLogoRemove}>
+                            Remove
+                          </Button>
+                        )}
+                      </div>
+                      <input
+                        type="text"
+                        value={settings.restaurant.logo || ''}
+                        onChange={(e) => handleRestaurantInfoChange('logo', e.target.value)}
+                        placeholder="Paste image URL"
+                        className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 dark:text-gray-100"
+                      />
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        This logo appears on customer receipts and welcome screens. Recommended size: square PNG with transparent background.
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
                 <div>

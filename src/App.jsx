@@ -4,6 +4,7 @@ import { CartProvider } from '@shared/contexts/CartContext'
 import { ThemeProvider } from '@shared/contexts/ThemeContext'
 import { SocketProvider } from '@shared/contexts/SocketContext'
 import { ToastProvider } from '@shared/components/Toast'
+import { PageLoader } from '@shared/components/Spinner'
 
 // Customer Pages
 import { CustomerLayout } from '@customer/layout/CustomerLayout'
@@ -25,12 +26,14 @@ import { MenuEditor } from '@admin/pages/MenuEditor'
 import { EditProfile } from '@admin/pages/EditProfile'
 import { Settings } from '@admin/pages/Settings'
 import { Login } from '@admin/pages/Login'
+import { Staff } from '@admin/pages/Staff'
+import { Inventory } from '@admin/pages/Inventory'
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth()
 
-  if (loading) return <div>Loading...</div>
+  if (loading) return <PageLoader message="Preparing your dashboard..." />
 
   return isAuthenticated ? children : <Navigate to="/owner/login" replace />
 }
@@ -73,6 +76,8 @@ function App() {
               <Route path="profile" element={<EditProfile />} />
               <Route path="settings" element={<Settings />} />
               <Route path="analytics" element={<Analytics />} />
+              <Route path="staff" element={<Staff />} />
+              <Route path="inventory" element={<Inventory />} />
             </Route>
 
             {/* Default Route */}

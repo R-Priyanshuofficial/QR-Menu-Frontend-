@@ -78,31 +78,39 @@ const PIE_COLORS = ['#6366F1', '#8B5CF6', '#10B981', '#3B82F6', '#EF4444'];
 export const Analytics = () => {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
-  const [period, setPeriod] = useState('week');
+  const [period, setPeriod] = useState('all');
   const [refreshing, setRefreshing] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [customDateRange, setCustomDateRange] = useState(false);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   useEffect(() => {
     fetchAnalytics();
-  }, [period]);
+  }, [period, startDate, endDate]);
 
   const fetchAnalytics = async () => {
     try {
       setRefreshing(true);
       console.log('📊 Fetching analytics for period:', period);
       
-      const response = await analyticsAPI.getStats(period);
+      // Build query params
+      const params = customDateRange && startDate && endDate 
+        ? { period: 'custom', startDate, endDate }
+        : { period };
+      
+      console.log('📅 Query params:', params);
+      const response = await analyticsAPI.getStats(params.period, params.startDate, params.endDate);
       console.log('✅ Analytics response received:', response);
       console.log('📦 Response data structure:', {
         hasData: !!response.data,
-        hasDataData: !!response.data?.data,
-        orderCount: response.data?.data?.orders?.total,
+        orderCount: response.data?.orders?.total,
         fullResponseKeys: Object.keys(response),
         dataKeys: response.data ? Object.keys(response.data) : []
       });
       
-      // Check if data is nested or direct
-      const statsData = response.data?.data || response.data;
+      // The axios interceptor already extracts response.data, so response.data contains our stats
+      const statsData = response.data;
       
       if (statsData && statsData.orders) {
         console.log('✅ Setting stats with', statsData.orders.total, 'orders');
@@ -111,7 +119,7 @@ export const Analytics = () => {
         console.warn('⚠️ Invalid response format, setting empty stats');
         console.log('Full response:', JSON.stringify(response, null, 2));
         console.log('Response.data:', JSON.stringify(response.data, null, 2));
-        // Set empty stats if no data
+        // Set empty stats if no data - IMPORTANT: Don't set to null, use empty object
         setStats({
           revenue: { total: 0, pending: 0, average: 0, daily: 0, today: 0, growth: 0 },
           orders: { total: 0, completed: 0, pending: 0, preparing: 0, ready: 0, cancelled: 0, today: 0, growth: 0, statusDistribution: {} },
@@ -133,7 +141,7 @@ export const Analytics = () => {
       console.error('❌ Error details:', error.response?.data);
       
       toast.error(error.response?.data?.message || 'Failed to load analytics data');
-      // Set empty stats on error
+      // Set empty stats on error - Don't leave stats as null
       setStats({
         revenue: { total: 0, pending: 0, average: 0, daily: 0, today: 0, growth: 0 },
         orders: { total: 0, completed: 0, pending: 0, preparing: 0, ready: 0, cancelled: 0, today: 0, growth: 0, statusDistribution: {} },
@@ -215,6 +223,187 @@ export const Analytics = () => {
 
   if (loading) return <PageLoader message="Loading analytics..." />;
 
+  const periodOptions = [
+    { value: 'all', label: 'Lifetime' },
+    { value: 'today', label: 'Today' },
+    { value: 'week', label: 'Week' },
+    { value: 'month', label: 'Month' },
+    { value: 'year', label: 'Year' },
+    { value: 'custom', label: 'Custom Range' }
+  ];
+
+  const handlePeriodChange = (value) => {
+    setPeriod(value);
+    if (value === 'custom') {
+      setCustomDateRange(true);
+      // Set default dates to last 30 days
+      const end = new Date();
+      const start = new Date();
+      start.setDate(start.getDate() - 30);
+      setEndDate(end.toISOString().split('T')[0]);
+      setStartDate(start.toISOString().split('T')[0]);
+    } else {
+      setCustomDateRange(false);
+      setStartDate('');
+      setEndDate('');
+    }
+  };
+
+  // Period Selector Component (used in both empty and normal states)
+  const PeriodSelector = () => (
+    <div className="flex flex-col gap-3 w-full">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-end gap-3">
+        <div className="flex items-center gap-2 flex-wrap justify-end w-full">
+          {/* Export PDF Menu - Only show when stats available */}
+          {stats && stats.orders.total > 0 && (
+            <div className="relative">
+              <Button
+                onClick={() => setShowExportMenu(!showExportMenu)}
+                size="sm"
+                className="gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+              >
+                <Download className="w-4 h-4" />
+                Export PDF
+                <ChevronDown className="w-4 h-4" />
+              </Button>
+              
+              {showExportMenu && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50"
+                >
+                  <button
+                    onClick={handleTestPDF}
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 border-b border-gray-200 dark:border-gray-700"
+                  >
+                    <Zap className="w-4 h-4 text-yellow-600" />
+                    Test PDF (Simple)
+                  </button>
+                  <button
+                    onClick={handleExportComplete}
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                  >
+                    <Activity className="w-4 h-4 text-purple-600" />
+                    Complete Report
+                  </button>
+                  <button
+                    onClick={handleExportRevenue}
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                  >
+                    <DollarSign className="w-4 h-4 text-green-600" />
+                    Revenue Report
+                  </button>
+                  <button
+                    onClick={handleExportOrders}
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                  >
+                    <ShoppingBag className="w-4 h-4 text-blue-600" />
+                    Orders Report
+                  </button>
+                  <button
+                    onClick={handleExportMenu}
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                  >
+                    <Award className="w-4 h-4 text-pink-600" />
+                    Menu Performance
+                  </button>
+                </motion.div>
+              )}
+            </div>
+          )}
+
+          {/* Refresh Button */}
+          <Button
+            onClick={() => fetchAnalytics()}
+            size="sm"
+            variant="outline"
+            disabled={refreshing}
+            className="gap-2"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+
+          {/* Period Selector */}
+          <div className="flex items-center gap-1 bg-white dark:bg-gray-800 rounded-lg p-1 shadow-sm border border-gray-200 dark:border-gray-700 overflow-x-auto">
+            {periodOptions.map((option) => (
+              <button
+                key={option.value}
+                onClick={() => handlePeriodChange(option.value)}
+                disabled={refreshing}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all whitespace-nowrap ${
+                  period === option.value
+                    ? 'bg-primary-600 text-white shadow'
+                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                } disabled:opacity-50`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {customDateRange && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full"
+        >
+          <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm">
+            <div className="p-4 flex flex-col xl:flex-row gap-4 items-start xl:items-end">
+              <div className="w-full xl:flex-1">
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+                  <Calendar className="w-4 h-4 inline mr-1 text-primary-500" />
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  max={endDate || new Date().toISOString().split('T')[0]}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-gray-100"
+                />
+              </div>
+              <div className="w-full xl:flex-1">
+                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+                  <Calendar className="w-4 h-4 inline mr-1 text-primary-500" />
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  min={startDate}
+                  max={new Date().toISOString().split('T')[0]}
+                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-gray-100"
+                />
+              </div>
+              <div className="flex gap-2 w-full xl:w-auto">
+                <Button
+                  onClick={fetchAnalytics}
+                  disabled={!startDate || !endDate || refreshing}
+                  className="gap-2 flex-1 xl:flex-none"
+                >
+                  <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                  Apply
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 xl:flex-none"
+                  onClick={() => handlePeriodChange('all')}
+                >
+                  Reset
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </motion.div>
+      )}
+    </div>
+  );
+
   // Show empty state if no orders
   if (!stats || stats.orders.total === 0) {
     return (
@@ -229,6 +418,8 @@ export const Analytics = () => {
               Comprehensive insights into your restaurant's performance
             </p>
           </div>
+          {/* Period Selector in Header for Empty State */}
+          <PeriodSelector />
         </div>
 
         {/* Empty State */}
@@ -242,7 +433,10 @@ export const Analytics = () => {
                 No Analytics Data Yet
               </h3>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
-                Start receiving orders to see comprehensive analytics and insights about your restaurant's performance.
+                {period === 'all' 
+                  ? 'Start receiving orders to see comprehensive analytics and insights about your restaurant\'s performance.'
+                  : `No orders found for the selected period. Try selecting "Lifetime" or a different date range.`
+                }
               </p>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Analytics will automatically populate as customers place orders through your QR menu system.
@@ -293,14 +487,6 @@ export const Analytics = () => {
     </motion.div>
   );
 
-  const periodOptions = [
-    { value: 'today', label: 'Today' },
-    { value: 'week', label: 'Week' },
-    { value: 'month', label: 'Month' },
-    { value: 'year', label: 'Year' },
-    { value: 'all', label: 'All Time' }
-  ];
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -317,94 +503,8 @@ export const Analytics = () => {
             Comprehensive insights into your restaurant's performance
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Export PDF Menu */}
-          <div className="relative">
-            <Button
-              onClick={() => setShowExportMenu(!showExportMenu)}
-              size="sm"
-              className="gap-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-            >
-              <Download className="w-4 h-4" />
-              Export PDF
-              <ChevronDown className="w-4 h-4" />
-            </Button>
-            
-            {showExportMenu && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50"
-              >
-                <button
-                  onClick={handleTestPDF}
-                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 border-b border-gray-200 dark:border-gray-700"
-                >
-                  <Zap className="w-4 h-4 text-yellow-600" />
-                  Test PDF (Simple)
-                </button>
-                <button
-                  onClick={handleExportComplete}
-                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-                >
-                  <Activity className="w-4 h-4 text-purple-600" />
-                  Complete Report
-                </button>
-                <button
-                  onClick={handleExportRevenue}
-                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-                >
-                  <DollarSign className="w-4 h-4 text-green-600" />
-                  Revenue Report
-                </button>
-                <button
-                  onClick={handleExportOrders}
-                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-                >
-                  <ShoppingBag className="w-4 h-4 text-blue-600" />
-                  Orders Report
-                </button>
-                <button
-                  onClick={handleExportMenu}
-                  className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
-                >
-                  <Award className="w-4 h-4 text-pink-600" />
-                  Menu Performance
-                </button>
-              </motion.div>
-            )}
-          </div>
-
-          {/* Refresh Button */}
-          <Button
-            onClick={() => fetchAnalytics()}
-            size="sm"
-            variant="outline"
-            disabled={refreshing}
-            className="gap-2"
-          >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-
-          {/* Period Selector */}
-          <div className="flex items-center gap-1 bg-white dark:bg-gray-800 rounded-lg p-1 shadow-sm border border-gray-200 dark:border-gray-700">
-            {periodOptions.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => setPeriod(option.value)}
-                disabled={refreshing}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                  period === option.value
-                    ? 'bg-primary-600 text-white'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                } disabled:opacity-50`}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        {/* Period Selector Moved to Right Side */}
+        <PeriodSelector />
       </motion.div>
 
       {/* Revenue Stats */}

@@ -7,20 +7,28 @@ import {
   BarChart3,
   Receipt,
   LogOut,
+  Users,
+  Package,
 } from 'lucide-react'
 import { useAuth } from '@shared/contexts/AuthContext'
 
 const navItems = [
-  { to: '/owner/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/owner/orders', icon: ShoppingBag, label: 'Orders' },
-  { to: '/owner/billing', icon: Receipt, label: 'Billing' },
-  { to: '/owner/menu', icon: Menu, label: 'Menu Editor' },
-  { to: '/owner/qr', icon: QrCode, label: 'QR Codes' },
-  { to: '/owner/analytics', icon: BarChart3, label: 'Analytics' },
+  { to: '/owner/dashboard', icon: LayoutDashboard, label: 'Dashboard', permission: 'dashboard' },
+  { to: '/owner/orders', icon: ShoppingBag, label: 'Orders', permission: 'orders' },
+  { to: '/owner/billing', icon: Receipt, label: 'Billing', permission: 'billing' },
+  { to: '/owner/menu', icon: Menu, label: 'Menu Editor', permission: 'menu' },
+  { to: '/owner/qr', icon: QrCode, label: 'QR Codes', permission: 'qr' },
+  { to: '/owner/analytics', icon: BarChart3, label: 'Analytics', permission: 'analytics' },
+  { to: '/owner/inventory', icon: Package, label: 'Inventory', permission: 'inventory' },
+  { to: '/owner/staff', icon: Users, label: 'Staff', permission: 'staff' },
 ]
 
 export const AdminSidebar = ({ isOpen, onClose }) => {
-  const { logout } = useAuth()
+  const { user, logout } = useAuth()
+  const isStaff = user?.role === 'staff'
+  const visibleNavItems = isStaff
+    ? navItems.filter((item) => user?.permissions?.includes(item.permission))
+    : navItems
 
   return (
     <>
@@ -50,7 +58,7 @@ export const AdminSidebar = ({ isOpen, onClose }) => {
 
           {/* Navigation */}
           <nav className="flex-1 p-3 sm:p-4 space-y-1 sm:space-y-2 overflow-y-auto">
-            {navItems.map((item) => (
+            {visibleNavItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}

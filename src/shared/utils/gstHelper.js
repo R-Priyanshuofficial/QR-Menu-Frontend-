@@ -37,14 +37,16 @@ export const getRestaurantInfo = () => {
         name: 'QR Menu Restaurant',
         address: '',
         phone: '',
-        gstNumber: ''
+        gstNumber: '',
+        logo: ''
       };
     }
     return {
       name: 'QR Menu Restaurant',
       address: '',
       phone: '',
-      gstNumber: ''
+      gstNumber: '',
+      logo: ''
     };
   } catch (error) {
     console.error('Failed to load restaurant info:', error);
@@ -52,7 +54,8 @@ export const getRestaurantInfo = () => {
       name: 'QR Menu Restaurant',
       address: '',
       phone: '',
-      gstNumber: ''
+      gstNumber: '',
+      logo: ''
     };
   }
 };

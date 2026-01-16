@@ -86,9 +86,9 @@ export const AuthProvider = ({ children }) => {
             restaurantName: 'Demo Restaurant',
           }
           const mockToken = 'mock-jwt-token-' + Date.now()
-          
+
           localStorage.setItem('auth_token', mockToken)
-          
+
           // Store remember me preference
           if (credentials.rememberMe) {
             localStorage.setItem('remember_me', 'true')
@@ -99,7 +99,7 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem('user_email')
             localStorage.removeItem('user_password')
           }
-          
+
           setUser(mockUser)
           setIsAuthenticated(true)
           // Register push subscription for owner (demo)
@@ -107,12 +107,15 @@ export const AuthProvider = ({ children }) => {
           toast.success('Login successful! (Demo mode - backend not connected)')
           return { success: true }
         }
-        toast.error('Backend server not running. Please start the API server.')
+        const message = 'Backend server not running. Please start the API server.'
+        toast.error(message)
+        return { success: false, error, message }
       } else {
-        // API returned an error
-        toast.error(error.response?.data?.message || 'Invalid email or password')
+        // API returned an error (includes role mismatches, invalid credentials, etc.)
+        const message = error.response?.data?.message || 'Invalid email or password'
+        toast.error(message)
+        return { success: false, error, message }
       }
-      return { success: false, error }
     }
   }
 

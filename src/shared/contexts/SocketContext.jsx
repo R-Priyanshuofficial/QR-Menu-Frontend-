@@ -5,10 +5,11 @@ import toast from 'react-hot-toast';
 import { 
   requestNotificationPermission, 
   showNotificationWithSound,
-  getNotificationPermission 
+  showBrowserNotification
 } from '@shared/utils/pushNotifications';
 
 const SocketContext = createContext(null);
+const SOUND_PREF_KEY = 'notification_sound_enabled';
 
 export const useSocket = () => {
   const context = useContext(SocketContext);
@@ -21,7 +22,41 @@ export const useSocket = () => {
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [connected, setConnected] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    const stored = localStorage.getItem(SOUND_PREF_KEY);
+    return stored !== 'off';
+  });
   const { user, isAuthenticated } = useAuth();
+
+  useEffect(() => {
+    localStorage.setItem(SOUND_PREF_KEY, soundEnabled ? 'on' : 'off');
+  }, [soundEnabled]);
+
+  const pushNotification = (notification) => {
+    setNotifications((prev) => {
+      const entry = {
+        id: notification.id || `${Date.now()}-${Math.random()}`,
+        title: notification.title || 'New Activity',
+        message: notification.message,
+        type: notification.type,
+        timestamp: notification.timestamp || new Date().toISOString(),
+        data: notification.data,
+        read: false,
+      };
+      return [entry, ...prev].slice(0, 15);
+    });
+  };
+  const markNotificationsRead = () => {
+    setNotifications((prev) =>
+      prev.map((item) => ({
+        ...item,
+        read: true,
+      })),
+    );
+  };
+  const clearNotifications = () => setNotifications([]);
 
   useEffect(() => {
     // Request browser notification permission on mount
@@ -100,6 +135,14 @@ export const SocketProvider = ({ children }) => {
     });
 
     // Handle notifications
+    const triggerBrowserNotification = (title, options) => {
+      if (soundEnabled) {
+        showNotificationWithSound(title, options);
+      } else {
+        showBrowserNotification(title, options);
+      }
+    };
+
     socketInstance.on('notification', (notification) => {
       console.log('📢 Notification received:', notification);
       
@@ -114,13 +157,13 @@ export const SocketProvider = ({ children }) => {
           },
         });
 
-        // Show BROWSER push notification (works even when tab is closed!)
-        showNotificationWithSound(notification.title || 'New Order! 🎉', {
+        triggerBrowserNotification(notification.title || 'New Order! 🎉', {
           body: notification.message,
           icon: '/favicon.ico',
           tag: 'new-order',
           data: notification.data,
         });
+        pushNotification(notification);
       } else if (notification.type === 'order_ready') {
         toast.success(notification.message, {
           duration: 5000,
@@ -131,36 +174,37 @@ export const SocketProvider = ({ children }) => {
           },
         });
 
-        // Show BROWSER push notification
-        showNotificationWithSound(notification.title || 'Order Ready! 🎉', {
+        triggerBrowserNotification(notification.title || 'Order Ready! 🎉', {
           body: notification.message,
           icon: '/favicon.ico',
           tag: 'order-ready',
           data: notification.data,
           requireInteraction: true, // Keeps notification visible
         });
+        pushNotification(notification);
       } else if (notification.type === 'order_status') {
         toast.info(notification.message, {
           duration: 4000,
         });
 
-        // Show BROWSER push notification
-        showNotificationWithSound(notification.title || 'Order Update', {
+        triggerBrowserNotification(notification.title || 'Order Update', {
           body: notification.message,
           icon: '/favicon.ico',
           tag: 'order-status',
           data: notification.data,
         });
+        pushNotification(notification);
       } else if (notification.type === 'test') {
         // Test notifications
         toast.success(notification.message, {
           duration: 4000,
         });
 
-        showNotificationWithSound(notification.title || 'Test', {
+        triggerBrowserNotification(notification.title || 'Test', {
           body: notification.message,
           icon: '/favicon.ico',
         });
+        pushNotification(notification);
       }
     });
 
@@ -174,9 +218,14 @@ export const SocketProvider = ({ children }) => {
 
   // Join owner room when authenticated
   useEffect(() => {
-    if (socket && connected && isAuthenticated && user?.id) {
-      socket.emit('owner:join', user.id);
-      console.log('👨‍💼 Owner joined room:', user.id);
+    if (socket && connected && isAuthenticated && user) {
+      const ownerId = user.id || user._id;
+      if (ownerId) {
+        socket.emit('owner:join', ownerId);
+        console.log('👨‍💼 Owner joined room:', ownerId);
+      } else {
+        console.warn('⚠️ Owner ID missing on user object - cannot join socket room');
+      }
     }
   }, [socket, connected, isAuthenticated, user]);
 
@@ -191,6 +240,12 @@ export const SocketProvider = ({ children }) => {
     socket,
     connected,
     joinOrderRoom,
+    notifications,
+    unreadCount: notifications.filter((item) => !item.read).length,
+    markNotificationsRead,
+    clearNotifications,
+    soundEnabled,
+    setNotificationSoundEnabled: setSoundEnabled,
   };
 
   return (

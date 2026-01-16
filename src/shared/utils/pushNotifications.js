@@ -57,17 +57,56 @@ export const showBrowserNotification = (title, options = {}) => {
   }
 };
 
+let notificationAudio;
+let audioContext;
+
+const ensureAudioInstance = () => {
+  if (notificationAudio) return notificationAudio;
+  notificationAudio = new Audio('/success-sound.mp3');
+  notificationAudio.preload = 'auto';
+  notificationAudio.crossOrigin = 'anonymous';
+  return notificationAudio;
+};
+
+const fallbackBeep = (volume = 0.8) => {
+  try {
+    if (!audioContext) {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      audioContext = new AudioCtx();
+    }
+    const duration = 0.2;
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    oscillator.type = 'sine';
+    oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+    gainNode.gain.value = volume;
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + duration);
+  } catch (error) {
+    console.warn('Fallback beep failed:', error);
+  }
+};
+
+export const playNotificationSound = async (volume = 0.8) => {
+  try {
+    const audio = ensureAudioInstance();
+    audio.pause();
+    audio.currentTime = 0;
+    audio.volume = volume;
+    await audio.play();
+    return true;
+  } catch (error) {
+    console.warn('Notification sound playback failed, using fallback beep.', error);
+    fallbackBeep(volume);
+    return false;
+  }
+};
+
 // Show notification with sound
 export const showNotificationWithSound = (title, options = {}) => {
-  // Play notification sound
-  try {
-    const audio = new Audio('/notification-sound.mp3');
-    audio.volume = 0.5;
-    audio.play().catch(err => console.log('Sound play failed:', err));
-  } catch (error) {
-    console.log('Audio not available');
-  }
-
+  playNotificationSound();
   // Show browser notification
   return showBrowserNotification(title, options);
 };

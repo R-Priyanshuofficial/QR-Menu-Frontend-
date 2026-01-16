@@ -8,6 +8,14 @@ export const authAPI = {
   updateProfile: (profileData) => api.put('/auth/profile', profileData),
 }
 
+// Staff endpoints (owner/admin only)
+export const staffAPI = {
+  list: () => api.get('/staff'),
+  create: (staffData) => api.post('/staff', staffData),
+  update: (id, staffData) => api.put(`/staff/${id}`, staffData),
+  remove: (id) => api.delete(`/staff/${id}`),
+}
+
 // Menu endpoints
 export const menuAPI = {
   getPublicMenu: (menuSlug, token) => api.get(`/menu/${menuSlug}`, { params: { token } }),
@@ -41,6 +49,7 @@ export const qrAPI = {
   getOne: (qrId) => api.get(`/qr/${qrId}`),
   delete: (qrId) => api.delete(`/qr/${qrId}`),
   trackScan: (token) => api.post(`/qr/scan/${token}`),
+  getAvatars: () => api.get('/qr/avatars'),
 }
 
 // Dashboard endpoints
@@ -52,16 +61,34 @@ export const dashboardAPI = {
 
 // Analytics endpoints
 export const analyticsAPI = {
-  getStats: (period) => api.get('/analytics/stats', { params: { period } }),
+  getStats: (period, startDate, endDate) => api.get('/analytics/stats', { 
+    params: { period, startDate, endDate } 
+  }),
   getOrderHistory: (page, limit) => api.get('/analytics/orders', { params: { page, limit } }),
   getPopularItems: () => api.get('/analytics/popular-items'),
 }
 
+// Inventory endpoints
+export const inventoryAPI = {
+  list: () => api.get('/inventory'),
+  add: (itemData) => api.post('/inventory', itemData),
+  update: (id, itemData) => api.put(`/inventory/${id}`, itemData),
+  delete: (id) => api.delete(`/inventory/${id}`),
+}
+
+// QR Design endpoints (AI)
+export const qrDesignAPI = {
+  generateDesigns: (designParams) => api.post('/qr/generate-designs', designParams),
+}
+
 export default {
   auth: authAPI,
+  staff: staffAPI,
   menu: menuAPI,
   orders: ordersAPI,
   qr: qrAPI,
   dashboard: dashboardAPI,
   analytics: analyticsAPI,
+  inventory: inventoryAPI,
+  qrDesign: qrDesignAPI,
 }

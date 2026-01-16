@@ -3,6 +3,7 @@ import { Plus, QrCode as QrIcon } from 'lucide-react'
 import { Button } from '@shared/components/Button'
 import { Input } from '@shared/components/Input'
 import { Modal, ConfirmModal } from '@shared/components/Modal'
+import { QRCustomizationModal } from '../components/QRCustomizationModal'
 import { QRTableList } from '../components/QRTableList'
 import { PageLoader } from '@shared/components/Spinner'
 import { qrAPI } from '@shared/api/endpoints'
@@ -12,10 +13,10 @@ import { motion } from 'framer-motion'
 export const QRGenerator = () => {
   const [loading, setLoading] = useState(true)
   const [qrCodes, setQrCodes] = useState([])
-  const [showModal, setShowModal] = useState(false)
+  const [showCustomizationModal, setShowCustomizationModal] = useState(false)
+  const [showTableNumberModal, setShowTableNumberModal] = useState(false)
   const [modalType, setModalType] = useState('global')
   const [tableNumber, setTableNumber] = useState('')
-  const [generating, setGenerating] = useState(false)
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, qrId: null })
 
   useEffect(() => {
@@ -35,46 +36,12 @@ export const QRGenerator = () => {
     }
   }
 
-  const handleGenerateGlobal = async () => {
-    setGenerating(true)
+  const handleGenerateQR = async (qrData) => {
     try {
-      const response = await qrAPI.generate({
-        name: 'Global Menu QR',
-        type: 'global'
-      })
-      toast.success('Global QR code generated!')
+      await qrAPI.generate(qrData)
       fetchQRCodes()
-      setShowModal(false)
     } catch (error) {
-      console.error('Generate QR error:', error)
-      toast.error(error.response?.data?.message || 'Failed to generate QR code')
-    } finally {
-      setGenerating(false)
-    }
-  }
-
-  const handleGenerateTable = async () => {
-    if (!tableNumber) {
-      toast.error('Please enter a table number')
-      return
-    }
-
-    setGenerating(true)
-    try {
-      const response = await qrAPI.generate({
-        name: `Table ${tableNumber} QR`,
-        type: 'table',
-        tableNumber: tableNumber
-      })
-      toast.success(`QR code for Table ${tableNumber} generated!`)
-      setTableNumber('')
-      fetchQRCodes()
-      setShowModal(false)
-    } catch (error) {
-      console.error('Generate QR error:', error)
-      toast.error(error.response?.data?.message || 'Failed to generate QR code')
-    } finally {
-      setGenerating(false)
+      throw error
     }
   }
 
@@ -95,9 +62,24 @@ export const QRGenerator = () => {
     }
   }
 
-  const openModal = (type) => {
+  const openCustomizationModal = (type) => {
     setModalType(type)
-    setShowModal(true)
+    if (type === 'table') {
+      // First ask for table number
+      setShowTableNumberModal(true)
+    } else {
+      // For global, open customization directly
+      setShowCustomizationModal(true)
+    }
+  }
+
+  const handleTableNumberSubmit = () => {
+    if (!tableNumber) {
+      toast.error('Please enter a table number')
+      return
+    }
+    setShowTableNumberModal(false)
+    setShowCustomizationModal(true)
   }
 
   if (loading) return <PageLoader message="Loading QR codes..." />
@@ -125,14 +107,14 @@ export const QRGenerator = () => {
       >
         <Button
           leftIcon={<Plus className="w-5 h-5" />}
-          onClick={() => openModal('global')}
+          onClick={() => openCustomizationModal('global')}
         >
           Generate Global QR
         </Button>
         <Button
           variant="outline"
           leftIcon={<Plus className="w-5 h-5" />}
-          onClick={() => openModal('table')}
+          onClick={() => openCustomizationModal('table')}
         >
           Generate Table QR
         </Button>
@@ -153,61 +135,64 @@ export const QRGenerator = () => {
             <p className="text-gray-400 dark:text-gray-500 text-xs sm:text-sm mb-6">
               Generate your first QR code to get started
             </p>
-            <Button onClick={() => openModal('global')}>
+            <Button onClick={() => openCustomizationModal('global')}>
               Generate QR Code
             </Button>
           </div>
         )}
       </motion.div>
 
-      {/* Generation Modal */}
+      {/* Table Number Input Modal */}
       <Modal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        title={modalType === 'global' ? 'Generate Global QR Code' : 'Generate Table QR Code'}
+        isOpen={showTableNumberModal}
+        onClose={() => {
+          setShowTableNumberModal(false)
+          setTableNumber('')
+        }}
+        title="Enter Table Number"
         footer={
           <>
-            <Button variant="ghost" onClick={() => setShowModal(false)}>
+            <Button variant="ghost" onClick={() => {
+              setShowTableNumberModal(false)
+              setTableNumber('')
+            }}>
               Cancel
             </Button>
-            <Button
-              onClick={modalType === 'global' ? handleGenerateGlobal : handleGenerateTable}
-              loading={generating}
-            >
-              Generate
+            <Button onClick={handleTableNumberSubmit}>
+              Next
             </Button>
           </>
         }
       >
-        {modalType === 'global' ? (
-          <div>
-            <p className="text-gray-600 dark:text-gray-300 mb-4">
-              A global QR code can be scanned by customers at any table. The menu will be displayed
-              without a specific table number.
-            </p>
-            <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4">
-              <p className="text-sm text-blue-800 dark:text-blue-200">
-                💡 <strong>Tip:</strong> Use global QR codes for takeaway menus or general display.
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div>
-            <p className="text-gray-600 dark:text-gray-300 mb-4">
-              Generate a QR code for a specific table. When scanned, the table number will be
-              displayed and included in orders.
-            </p>
-            <Input
-              label="Table Number"
-              type="number"
-              placeholder="Enter table number"
-              value={tableNumber}
-              onChange={(e) => setTableNumber(e.target.value)}
-              required
-            />
-          </div>
-        )}
+        <div>
+          <p className="text-gray-600 dark:text-gray-300 mb-4">
+            Enter the table number for this QR code. This will be displayed when the QR is scanned.
+          </p>
+          <Input
+            label="Table Number"
+            type="number"
+            placeholder="Enter table number"
+            value={tableNumber}
+            onChange={(e) => setTableNumber(e.target.value)}
+            required
+            autoFocus
+          />
+        </div>
       </Modal>
+
+      {/* QR Customization Modal */}
+      <QRCustomizationModal
+        isOpen={showCustomizationModal}
+        onClose={() => {
+          setShowCustomizationModal(false)
+          if (modalType === 'table') {
+            setTableNumber('')
+          }
+        }}
+        qrType={modalType}
+        tableNumber={modalType === 'table' ? tableNumber : null}
+        onGenerate={handleGenerateQR}
+      />
 
       {/* Delete Confirmation */}
       <ConfirmModal
@@ -222,3 +207,4 @@ export const QRGenerator = () => {
     </div>
   )
 }
+

@@ -46,9 +46,21 @@ api.interceptors.response.use(
     if (error.response) {
       switch (error.response.status) {
         case 401:
-          // Unauthorized - clear token and redirect to login
-          localStorage.removeItem('auth_token')
-          window.location.href = '/owner/login'
+          // Unauthorized
+          // For normal API calls when user was logged in, clear token and redirect.
+          // For login failures (no token yet, /auth/login), just pass error through.
+          try {
+            const token = localStorage.getItem('auth_token')
+            const url = error.config?.url || ''
+            const isLoginRequest = url.includes('/auth/login')
+
+            if (token && !isLoginRequest) {
+              localStorage.removeItem('auth_token')
+              window.location.href = '/owner/login'
+            }
+          } catch {
+            // Fallback: do nothing special, let caller handle
+          }
           break
         case 403:
           // Forbidden
@@ -69,7 +81,7 @@ api.interceptors.response.use(
       // Network error
       console.error('Network error - please check your connection')
     }
-    
+
     return Promise.reject(error)
   }
 )

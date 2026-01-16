@@ -323,6 +323,12 @@ const generateReceiptHTML = (bill) => {
             font-weight: bold;
             margin-bottom: 5px;
           }
+          .restaurant-logo {
+            width: 70px;
+            height: 70px;
+            object-fit: contain;
+            margin: 0 auto 6px;
+          }
           .receipt-title {
             font-size: 14px;
             margin: 10px 0;
@@ -376,7 +382,8 @@ const generateReceiptHTML = (bill) => {
       </head>
       <body>
         <div class="header">
-          <div class="restaurant-name">${restaurantInfo.name.toUpperCase()}</div>
+          ${restaurantInfo.logo ? `<img src="${restaurantInfo.logo}" class="restaurant-logo" alt="${(restaurantInfo.name || 'Restaurant')} logo" />` : ''}
+          <div class="restaurant-name">${(restaurantInfo.name || 'QR MENU RESTAURANT').toUpperCase()}</div>
           ${restaurantInfo.address ? `<div style="font-size: 10px;">${restaurantInfo.address}</div>` : ''}
           ${restaurantInfo.phone ? `<div style="font-size: 10px;">Ph: ${restaurantInfo.phone}</div>` : ''}
           ${restaurantInfo.gstNumber ? `<div class="gst-info">GSTIN: ${restaurantInfo.gstNumber}</div>` : ''}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Bell, BellOff, Volume2 } from 'lucide-react';
+import { Bell, BellOff } from 'lucide-react';
 import { Button } from '@shared/components/Button';
 import { Card } from '@shared/components/Card';
 import { 
@@ -31,15 +31,6 @@ export const NotificationPermission = () => {
     } else {
       toast.error('Please enable notifications in your browser settings');
     }
-  };
-
-  const handleTestNotification = () => {
-    showNotificationWithSound('Test Notification 🔔', {
-      body: 'This is how you will receive order notifications!',
-      icon: '/favicon.ico',
-      requireInteraction: true,
-    });
-    toast.success('Test notification sent!');
   };
 
   if (permission === 'unsupported') {
@@ -125,15 +116,6 @@ export const NotificationPermission = () => {
             </p>
           </div>
         </div>
-        <Button 
-          onClick={handleTestNotification}
-          variant="outline"
-          size="sm"
-          className="w-full"
-        >
-          <Volume2 className="w-4 h-4 mr-2" />
-          Test Notification
-        </Button>
       </div>
     </Card>
   );
