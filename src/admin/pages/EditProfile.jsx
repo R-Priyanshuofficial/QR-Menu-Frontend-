@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Save, Camera, Mail, Phone, MapPin, Building, Image as ImageIcon, Upload } from 'lucide-react'
+import { Save, Camera, Mail, Phone, MapPin, Building, Image as ImageIcon, Upload, CreditCard } from 'lucide-react'
 import { Button } from '@shared/components/Button'
 import { Input, TextArea } from '@shared/components/Input'
 import { Card } from '@shared/components/Card'
@@ -21,6 +21,7 @@ export const EditProfile = () => {
     restaurantAddress: user?.restaurantAddress || '',
     restaurantDescription: user?.restaurantDescription || '',
     restaurantLogo: user?.restaurantLogo || '',
+    upiId: user?.upiId || '',
   })
 
   // Update form when user data changes
@@ -34,6 +35,7 @@ export const EditProfile = () => {
         restaurantAddress: user.restaurantAddress || '',
         restaurantDescription: user.restaurantDescription || '',
         restaurantLogo: user.restaurantLogo || '',
+        upiId: user.upiId || '',
       })
     }
   }, [user])
@@ -287,6 +289,18 @@ export const EditProfile = () => {
                       leftIcon={<MapPin className="w-5 h-5" />}
                       placeholder="Enter restaurant address"
                     />
+
+                    <Input
+                      label="UPI ID"
+                      name="upiId"
+                      value={formData.upiId}
+                      onChange={handleChange}
+                      leftIcon={<CreditCard className="w-5 h-5" />}
+                      placeholder="yourname@upi or 1234567890@paytm"
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">
+                      This UPI ID will be shown on customer bills for payment
+                    </p>
 
                     <TextArea
                       label="Welcome Message / Description"
