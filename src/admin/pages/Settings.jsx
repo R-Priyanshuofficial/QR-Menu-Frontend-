@@ -729,6 +729,22 @@ export const Settings = () => {
                   </p>
                 </div>
 
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    UPI ID
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.restaurant.upiId || ''}
+                    onChange={(e) => handleRestaurantInfoChange('upiId', e.target.value)}
+                    placeholder="yourname@upi or 1234567890@paytm"
+                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 dark:text-gray-100"
+                  />
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    This UPI ID will be shown on customer bills for payment
+                  </p>
+                </div>
+
                 {/* Restaurant Info Help */}
                 <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mt-4">
                   <div className="flex items-start gap-2">

@@ -290,18 +290,6 @@ export const EditProfile = () => {
                       placeholder="Enter restaurant address"
                     />
 
-                    <Input
-                      label="UPI ID"
-                      name="upiId"
-                      value={formData.upiId}
-                      onChange={handleChange}
-                      leftIcon={<CreditCard className="w-5 h-5" />}
-                      placeholder="yourname@upi or 1234567890@paytm"
-                    />
-                    <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">
-                      This UPI ID will be shown on customer bills for payment
-                    </p>
-
                     <TextArea
                       label="Welcome Message / Description"
                       name="restaurantDescription"

@@ -2,6 +2,7 @@
 import { formatCurrency } from './formatters';
 import { getRestaurantInfo } from './gstHelper';
 import toast from 'react-hot-toast';
+import QRCode from 'qrcode';
 
 /**
  * Get printer settings from localStorage
@@ -64,8 +65,37 @@ export const printBill = async (bill) => {
  */
 const printBrowser = async (bill) => {
   try {
-    // Generate receipt HTML
-    const receiptHTML = generateReceiptHTML(bill);
+    // Generate UPI QR code locally if UPI ID is configured
+    let qrCodeDataUrl = '';
+    try {
+      const savedSettings = localStorage.getItem('restaurantSettings');
+      if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        const upiId = settings.restaurant?.upiId || '';
+        const restaurantName = settings.restaurant?.name || 'Restaurant';
+        
+        if (upiId) {
+          // Generate UPI deep link
+          const upiLink = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${encodeURIComponent(restaurantName)}&am=${bill.totalAmount.toFixed(2)}&cu=INR`;
+          
+          // Generate QR code as data URL (offline, no API limits!)
+          qrCodeDataUrl = await QRCode.toDataURL(upiLink, {
+            width: 150,
+            margin: 1,
+            color: {
+              dark: '#000000',
+              light: '#ffffff'
+            }
+          });
+        }
+      }
+    } catch (qrError) {
+      console.error('QR code generation failed:', qrError);
+      // Continue without QR code
+    }
+
+    // Generate receipt HTML with QR code
+    const receiptHTML = generateReceiptHTML(bill, qrCodeDataUrl);
     
     // Open print window
     const printWindow = window.open('', '_blank');
@@ -257,7 +287,7 @@ export const generateESCPOSCommands = (bill) => {
 /**
  * Generate HTML receipt for browser printing
  */
-const generateReceiptHTML = (bill) => {
+const generateReceiptHTML = (bill, qrCodeDataUrl = '') => {
   const allItems = bill.orders.flatMap(order => 
     order.items.map(item => ({
       ...item,
@@ -267,6 +297,18 @@ const generateReceiptHTML = (bill) => {
   );
 
   const restaurantInfo = getRestaurantInfo();
+
+  // Get UPI ID from settings
+  let upiId = '';
+  try {
+    const savedSettings = localStorage.getItem('restaurantSettings');
+    if (savedSettings) {
+      const settings = JSON.parse(savedSettings);
+      upiId = settings.restaurant?.upiId || '';
+    }
+  } catch (e) {
+    console.error('Failed to get UPI ID:', e);
+  }
 
   // Generate GST rows
   let gstRows = '';
@@ -291,6 +333,19 @@ const generateReceiptHTML = (bill) => {
       `;
     }
   }
+
+  // UPI Payment Section HTML (only if UPI ID exists and QR code was generated)
+  const upiPaymentSection = (upiId && qrCodeDataUrl) ? `
+    <div class="upi-section">
+      <div class="upi-title">📱 Pay via UPI</div>
+      <div class="qr-container">
+        <img src="${qrCodeDataUrl}" alt="UPI QR Code" class="qr-code" />
+      </div>
+      <div class="upi-id">UPI: ${upiId}</div>
+      <div class="upi-amount">Amount: ${formatCurrency(bill.totalAmount)}</div>
+      <div class="upi-hint">Scan to pay instantly</div>
+    </div>
+  ` : '';
 
   return `
     <!DOCTYPE html>
@@ -378,6 +433,41 @@ const generateReceiptHTML = (bill) => {
             font-size: 9px;
             margin-top: 5px;
           }
+          .upi-section {
+            text-align: center;
+            margin: 15px 0;
+            padding: 12px;
+            border: 2px dashed #000;
+            border-radius: 8px;
+            background: #f9f9f9;
+          }
+          .upi-title {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 8px;
+          }
+          .qr-container {
+            margin: 10px auto;
+          }
+          .qr-code {
+            width: 120px;
+            height: 120px;
+          }
+          .upi-id {
+            font-size: 10px;
+            margin-top: 8px;
+            word-break: break-all;
+          }
+          .upi-amount {
+            font-weight: bold;
+            font-size: 12px;
+            margin-top: 4px;
+          }
+          .upi-hint {
+            font-size: 9px;
+            margin-top: 4px;
+            color: #666;
+          }
         </style>
       </head>
       <body>
@@ -450,6 +540,8 @@ const generateReceiptHTML = (bill) => {
             <span>${formatCurrency(bill.totalAmount)}</span>
           </div>
         </div>
+
+        ${upiPaymentSection}
 
         <div class="footer">
           <div>Total Items: ${bill.itemCount}</div>
