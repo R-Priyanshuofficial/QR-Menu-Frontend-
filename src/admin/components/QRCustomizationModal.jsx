@@ -21,14 +21,14 @@ export const QRCustomizationModal = ({ isOpen, onClose, qrType, tableNumber, onG
   const [generatedDesigns, setGeneratedDesigns] = useState([])
   const [selectedDesign, setSelectedDesign] = useState(null)
   const [loadingDesigns, setLoadingDesigns] = useState(false)
-  
+
   const [customization, setCustomization] = useState({
     logoUrl: null,
     avatarId: null,
-    qrColor: '#000000',
-    backgroundColor: '#FFFFFF',
-    borderStyle: 'none',
-    borderColor: '#000000',
+    qrColor: getTemplate(DEFAULT_TEMPLATE).qrColor,
+    backgroundColor: getTemplate(DEFAULT_TEMPLATE).backgroundColor,
+    borderStyle: getTemplate(DEFAULT_TEMPLATE).borderStyle,
+    borderColor: getTemplate(DEFAULT_TEMPLATE).borderColor,
     showTableNumber: false
   })
 
@@ -48,13 +48,14 @@ export const QRCustomizationModal = ({ isOpen, onClose, qrType, tableNumber, onG
       setStep(1)
       setLogoFile(null)
       setLogoPreview(null)
+      const defaultTemplate = getTemplate(DEFAULT_TEMPLATE)
       setCustomization({
         logoUrl: null,
         avatarId: null,
-        qrColor: '#000000',
-        backgroundColor: '#FFFFFF',
-        borderStyle: 'none',
-        borderColor: '#000000',
+        qrColor: defaultTemplate.qrColor,
+        backgroundColor: defaultTemplate.backgroundColor,
+        borderStyle: defaultTemplate.borderStyle,
+        borderColor: defaultTemplate.borderColor,
         showTableNumber: false
       })
     }
@@ -125,7 +126,7 @@ export const QRCustomizationModal = ({ isOpen, onClose, qrType, tableNumber, onG
     try {
       // Construct QR URL
       const frontendBase = import.meta.env.VITE_API_URL?.replace('/api', '') || window.location.origin
-      const menuUrl = qrType === 'table' 
+      const menuUrl = qrType === 'table'
         ? `${frontendBase}/menu?table=${tableNumber}`
         : `${frontendBase}/menu`
 
@@ -156,10 +157,10 @@ export const QRCustomizationModal = ({ isOpen, onClose, qrType, tableNumber, onG
       }
     } catch (error) {
       console.error('❌ AI design generation error:', error)
-      
+
       // Show specific error message based on error type
       let errorMessage = 'Failed to generate designs. Please try again.'
-      
+
       if (error.response) {
         // Server responded with error
         const serverMessage = error.response.data?.message
@@ -174,7 +175,7 @@ export const QRCustomizationModal = ({ isOpen, onClose, qrType, tableNumber, onG
         // Request made but no response
         errorMessage = 'Cannot connect to server. Please check your connection.'
       }
-      
+
       toast.error(errorMessage)
       setLoadingDesigns(false)
       return false
@@ -191,7 +192,7 @@ export const QRCustomizationModal = ({ isOpen, onClose, qrType, tableNumber, onG
         tableNumber: qrType === 'table' ? tableNumber : undefined,
         customization
       }
-      
+
       await onGenerate(payload)
       onClose()
       toast.success('Customized QR code generated!')
@@ -232,16 +233,15 @@ export const QRCustomizationModal = ({ isOpen, onClose, qrType, tableNumber, onG
             {[1, 2, 3, 4].map(s => (
               <div key={s} className="flex items-center">
                 <div className="flex flex-col items-center">
-                  <div className={`flex items-center justify-center w-10 h-10 rounded-full ${
-                    step >= s ? 'bg-red-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'
-                  }`}>
+                  <div className={`flex items-center justify-center w-10 h-10 rounded-full ${step >= s ? 'bg-red-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-500'
+                    }`}>
                     {s}
                   </div>
                   <div className={`text-xs mt-2 whitespace-nowrap ${step >= s ? 'text-gray-900 dark:text-gray-100 font-medium' : 'text-gray-500'}`}>
                     {s === 1 ? 'Template' : s === 2 ? 'Logo/Avatar' : s === 3 ? 'Colors & Border' : 'Design Selection'}
                   </div>
                 </div>
-                {s <  4 && <div className={`h-1 w-20 mx-4 ${step > s ? 'bg-red-500' : 'bg-gray-200 dark:bg-gray-700'}`} />}
+                {s < 4 && <div className={`h-1 w-20 mx-4 ${step > s ? 'bg-red-500' : 'bg-gray-200 dark:bg-gray-700'}`} />}
               </div>
             ))}
           </div>
@@ -256,7 +256,7 @@ export const QRCustomizationModal = ({ isOpen, onClose, qrType, tableNumber, onG
                 selectedTemplateId={selectedTemplate}
                 onSelectTemplate={handleTemplateSelect}
               />
-              
+
               {/* Restaurant Name Input */}
               <div className="pt-6 border-t border-gray-200 dark:border-gray-700">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -335,13 +335,12 @@ export const QRCustomizationModal = ({ isOpen, onClose, qrType, tableNumber, onG
                       <button
                         key={avatar.id}
                         onClick={() => handleAvatarSelect(avatar.id)}
-                        className={`p-4 border-2 rounded-lg transition-all ${
-                          customization.avatarId === avatar.id
-                            ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
-                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                        }`}
+                        className={`p-4 border-2 rounded-lg transition-all ${customization.avatarId === avatar.id
+                          ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                          }`}
                       >
-                        <img src={`http://localhost:5000${avatar.url}`} alt={avatar.name} className="w-full h-20 object-contain" />
+                        <img src={`https://qr-menu-backend-lwba.onrender.com${avatar.url}`} alt={avatar.name} className="w-full h-20 object-contain" />
                         <p className="text-xs text-center mt-2 text-gray-700 dark:text-gray-300">{avatar.name}</p>
                       </button>
                     ))}
@@ -419,11 +418,10 @@ export const QRCustomizationModal = ({ isOpen, onClose, qrType, tableNumber, onG
                     <button
                       key={style}
                       onClick={() => handleBorderStyleChange(style)}
-                      className={`p-4 border-2 rounded-lg text-sm font-medium capitalize transition-all ${
-                        customization.borderStyle === style
-                          ? 'border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400'
-                          : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-300'
-                      }`}
+                      className={`p-4 border-2 rounded-lg text-sm font-medium capitalize transition-all ${customization.borderStyle === style
+                        ? 'border-red-500 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-300'
+                        }`}
                     >
                       {style}
                     </button>
@@ -474,7 +472,7 @@ export const QRCustomizationModal = ({ isOpen, onClose, qrType, tableNumber, onG
               Cancel
             </Button>
             {step < 4 ? (
-              <Button 
+              <Button
                 onClick={async () => {
                   if (step === 3) {
                     // Trigger AI generation before moving to step 4
@@ -492,8 +490,8 @@ export const QRCustomizationModal = ({ isOpen, onClose, qrType, tableNumber, onG
                 {loadingDesigns ? '🎨 Designs are on the way...' : (step === 3 ? 'Generate Designs with AI ✨' : 'Next')}
               </Button>
             ) : (
-              <Button 
-                onClick={handleGenerate} 
+              <Button
+                onClick={handleGenerate}
                 loading={generating}
                 disabled={!selectedDesign}
               >

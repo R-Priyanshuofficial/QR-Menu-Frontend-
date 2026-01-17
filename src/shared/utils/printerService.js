@@ -93,7 +93,7 @@ const printDirect = async (bill, settings) => {
     toast.loading('Sending to printer...', { id: 'direct-print' });
 
     // Get API base URL from environment or default to localhost
-    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const API_URL = import.meta.env.VITE_API_URL || 'https://qr-menu-backend-lwba.onrender.com/api';
 
     // Prepare bill data with restaurant info
     const billData = {

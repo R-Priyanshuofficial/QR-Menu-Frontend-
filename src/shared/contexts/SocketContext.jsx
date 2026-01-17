@@ -2,8 +2,8 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext';
 import toast from 'react-hot-toast';
-import { 
-  requestNotificationPermission, 
+import {
+  requestNotificationPermission,
   showNotificationWithSound,
   showBrowserNotification
 } from '@shared/utils/pushNotifications';
@@ -73,14 +73,14 @@ export const SocketProvider = ({ children }) => {
 
     // Create socket connection (adaptive): use current page host for LAN access
     const { protocol, hostname } = window.location;
-    const envApi = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const envApi = import.meta.env.VITE_API_URL || 'https://qr-menu-backend-lwba.onrender.com/api';
     const isLocalHost = hostname === 'localhost' || hostname === '127.0.0.1';
     const derivedBase = `${protocol}//${hostname}:5000`;
     const baseUrl = (!isLocalHost && envApi.includes('localhost'))
       ? derivedBase
       : envApi.replace('/api', '');
     console.log('🔌 Connecting to Socket.io:', baseUrl);
-    
+
     const socketInstance = io(baseUrl, {
       transports: ['websocket', 'polling'],
       reconnection: true,
@@ -94,18 +94,18 @@ export const SocketProvider = ({ children }) => {
       console.log('   Socket ID:', socketInstance.id);
       console.log('   Transport:', socketInstance.io.engine.transport.name);
       setConnected(true);
-      
+
       // Show success toast
-      toast.success('Connected to server! 🎉', {
-        duration: 2000,
-        position: 'bottom-right',
-      });
+      // toast.success('Connected to server! 🎉', {
+      //   duration: 2000,
+      //   position: 'bottom-right',
+      // });
     });
 
     socketInstance.on('disconnect', (reason) => {
       console.log('❌ Socket disconnected. Reason:', reason);
       setConnected(false);
-      
+
       if (reason === 'io server disconnect') {
         // Server disconnected, try to reconnect
         socketInstance.connect();
@@ -145,7 +145,7 @@ export const SocketProvider = ({ children }) => {
 
     socketInstance.on('notification', (notification) => {
       console.log('📢 Notification received:', notification);
-      
+
       // Show toast notification (in-app)
       if (notification.type === 'new_order') {
         toast.success(notification.message, {

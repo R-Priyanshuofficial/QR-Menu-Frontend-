@@ -12,7 +12,7 @@ Your frontend is now connected to the backend API!
 
 ```env
 # Local Development
-VITE_API_URL=http://localhost:5000/api
+VITE_API_URL=https://qr-menu-backend-lwba.onrender.com/api
 
 # Production (Change this when deploying)
 # VITE_API_URL=https://your-production-api.com/api

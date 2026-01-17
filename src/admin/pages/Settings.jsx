@@ -278,7 +278,7 @@ export const Settings = () => {
       toast.loading('Testing printer connection...', { id: 'printer-test' });
       
       // Get API base URL
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const API_URL = import.meta.env.VITE_API_URL || 'https://qr-menu-backend-lwba.onrender.com/api';
       
       // Call backend test API
       const response = await fetch(`${API_URL}/printer/test`, {
