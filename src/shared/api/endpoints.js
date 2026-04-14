@@ -47,9 +47,13 @@ export const qrAPI = {
   generate: (qrData) => api.post('/qr/generate', qrData),
   getAll: () => api.get('/qr'),
   getOne: (qrId) => api.get(`/qr/${qrId}`),
+  update: (qrId, data) => api.put(`/qr/${qrId}`, data),
+  duplicate: (qrId) => api.post(`/qr/${qrId}/duplicate`),
   delete: (qrId) => api.delete(`/qr/${qrId}`),
   trackScan: (token) => api.post(`/qr/scan/${token}`),
   getAvatars: () => api.get('/qr/avatars'),
+  getRedirectUrl: (qrId) => api.get(`/qr/${qrId}/redirect`),
+  updateRedirectUrl: (qrId, url) => api.put(`/qr/${qrId}/redirect`, { url }),
 }
 
 // Dashboard endpoints

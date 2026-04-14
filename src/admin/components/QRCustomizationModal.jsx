@@ -186,11 +186,22 @@ export const QRCustomizationModal = ({ isOpen, onClose, qrType, tableNumber, onG
   const handleGenerate = async () => {
     setGenerating(true)
     try {
+      // Strip the large preview image from designSpec before sending
+      let cleanDesignSpec = null
+      if (selectedDesign) {
+        const { preview, ...specWithoutPreview } = selectedDesign
+        cleanDesignSpec = specWithoutPreview
+      }
+
       const payload = {
         name: qrType === 'global' ? 'Global Menu QR' : `Table ${tableNumber} QR`,
         type: qrType,
         tableNumber: qrType === 'table' ? tableNumber : undefined,
-        customization
+        customization: { ...customization, borderStyle: 'none' },
+        // Pass the selected design spec (without preview) so the backend generates the full placeholder
+        designSpec: cleanDesignSpec,
+        restaurantName: restaurantName.trim(),
+        templateId: selectedTemplate
       }
 
       await onGenerate(payload)

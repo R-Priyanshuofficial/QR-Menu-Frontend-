@@ -1,21 +1,20 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Plus, QrCode as QrIcon } from 'lucide-react'
 import { Button } from '@shared/components/Button'
 import { Input } from '@shared/components/Input'
 import { Modal, ConfirmModal } from '@shared/components/Modal'
-import { QRCustomizationModal } from '../components/QRCustomizationModal'
-import { QRTableList } from '../components/QRTableList'
+import { QRDashboard } from '../components/qr/QRDashboard'
 import { PageLoader } from '@shared/components/Spinner'
 import { qrAPI } from '@shared/api/endpoints'
 import toast from 'react-hot-toast'
 import { motion } from 'framer-motion'
 
 export const QRGenerator = () => {
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [qrCodes, setQrCodes] = useState([])
-  const [showCustomizationModal, setShowCustomizationModal] = useState(false)
   const [showTableNumberModal, setShowTableNumberModal] = useState(false)
-  const [modalType, setModalType] = useState('global')
   const [tableNumber, setTableNumber] = useState('')
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, qrId: null })
 
@@ -36,15 +35,6 @@ export const QRGenerator = () => {
     }
   }
 
-  const handleGenerateQR = async (qrData) => {
-    try {
-      await qrAPI.generate(qrData)
-      fetchQRCodes()
-    } catch (error) {
-      throw error
-    }
-  }
-
   const handleDelete = (qrId) => {
     setDeleteModal({ isOpen: true, qrId })
   }
@@ -62,14 +52,11 @@ export const QRGenerator = () => {
     }
   }
 
-  const openCustomizationModal = (type) => {
-    setModalType(type)
+  const openDesigner = (type) => {
     if (type === 'table') {
-      // First ask for table number
       setShowTableNumberModal(true)
     } else {
-      // For global, open customization directly
-      setShowCustomizationModal(true)
+      navigate('/owner/qr/designer?type=global')
     }
   }
 
@@ -79,7 +66,8 @@ export const QRGenerator = () => {
       return
     }
     setShowTableNumberModal(false)
-    setShowCustomizationModal(true)
+    navigate(`/owner/qr/designer?type=table&table=${tableNumber}`)
+    setTableNumber('')
   }
 
   if (loading) return <PageLoader message="Loading QR codes..." />
@@ -93,7 +81,7 @@ export const QRGenerator = () => {
         className="flex items-center justify-between"
       >
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">QR Code Generator</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">QR Code Manager</h1>
           <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Create and manage QR codes for your restaurant</p>
         </div>
       </motion.div>
@@ -107,16 +95,17 @@ export const QRGenerator = () => {
       >
         <Button
           leftIcon={<Plus className="w-5 h-5" />}
-          onClick={() => openCustomizationModal('global')}
+          onClick={() => openDesigner('global')}
+          className="bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600"
         >
-          Generate Global QR
+          Design Global QR
         </Button>
         <Button
           variant="outline"
           leftIcon={<Plus className="w-5 h-5" />}
-          onClick={() => openCustomizationModal('table')}
+          onClick={() => openDesigner('table')}
         >
-          Generate Table QR
+          Design Table QR
         </Button>
       </motion.div>
 
@@ -127,16 +116,16 @@ export const QRGenerator = () => {
         transition={{ delay: 0.2 }}
       >
         {qrCodes.length > 0 ? (
-          <QRTableList qrCodes={qrCodes} onDelete={handleDelete} />
+          <QRDashboard qrCodes={qrCodes} onDelete={handleDelete} onRefresh={fetchQRCodes} />
         ) : (
           <div className="text-center py-12">
             <QrIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500 dark:text-gray-400 text-base sm:text-lg mb-2">No QR codes yet</p>
             <p className="text-gray-400 dark:text-gray-500 text-xs sm:text-sm mb-6">
-              Generate your first QR code to get started
+              Design your first QR code to get started
             </p>
-            <Button onClick={() => openCustomizationModal('global')}>
-              Generate QR Code
+            <Button onClick={() => openDesigner('global')}>
+              Design QR Code
             </Button>
           </div>
         )}
@@ -180,20 +169,6 @@ export const QRGenerator = () => {
         </div>
       </Modal>
 
-      {/* QR Customization Modal */}
-      <QRCustomizationModal
-        isOpen={showCustomizationModal}
-        onClose={() => {
-          setShowCustomizationModal(false)
-          if (modalType === 'table') {
-            setTableNumber('')
-          }
-        }}
-        qrType={modalType}
-        tableNumber={modalType === 'table' ? tableNumber : null}
-        onGenerate={handleGenerateQR}
-      />
-
       {/* Delete Confirmation */}
       <ConfirmModal
         isOpen={deleteModal.isOpen}
@@ -207,4 +182,3 @@ export const QRGenerator = () => {
     </div>
   )
 }
-

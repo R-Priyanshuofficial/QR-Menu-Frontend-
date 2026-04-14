@@ -22,6 +22,8 @@ import { Analytics } from '@admin/pages/Analytics'
 import { Orders } from '@admin/pages/Orders'
 import { Billing } from '@admin/pages/Billing'
 import { QRGenerator } from '@admin/pages/QRGenerator'
+import { QRCustomizer } from '@admin/pages/QRCustomizer'
+import { QRDesigner } from '@admin/pages/QRDesigner'
 import { MenuEditor } from '@admin/pages/MenuEditor'
 import { EditProfile } from '@admin/pages/EditProfile'
 import { Settings } from '@admin/pages/Settings'
@@ -73,6 +75,8 @@ function App() {
               <Route path="billing" element={<Billing />} />
               <Route path="menu" element={<MenuEditor />} />
               <Route path="qr" element={<QRGenerator />} />
+              <Route path="qr/customize" element={<QRCustomizer />} />
+              <Route path="qr/designer" element={<QRDesigner />} />
               <Route path="profile" element={<EditProfile />} />
               <Route path="settings" element={<Settings />} />
               <Route path="analytics" element={<Analytics />} />

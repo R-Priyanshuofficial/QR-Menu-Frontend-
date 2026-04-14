@@ -76,7 +76,7 @@ export const QRTableList = ({ qrCodes, onDelete }) => {
                       id={`qr-${code.id}`}
                       src={code.qrCodeData}
                       alt={`QR Code for ${code.name}`}
-                      className="w-[150px] h-[150px]"
+                      className="w-[150px] h-auto object-contain"
                     />
                   ) : (
                     <QRCodeSVG
