@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react'
 import QRCodeStyling from 'qr-code-styling'
 import { motion } from 'framer-motion'
 import { sanitizeDesignConfig } from '../../constants/designConfigDefaults'
 
-export const QRPreview = ({ config, getQRStylingOptions, qrType, tableNumber, qrRef: externalRef }) => {
+export const QRPreview = forwardRef(({ config, getQRStylingOptions, qrType, tableNumber, qrRef: externalRef }, ref) => {
   const containerRef = useRef(null)
+  const cardRef = useRef(null)
   const qrInstanceRef = useRef(null)
   const [ready, setReady] = useState(false)
   const safeConfig = sanitizeDesignConfig(config)
@@ -15,6 +16,12 @@ export const QRPreview = ({ config, getQRStylingOptions, qrType, tableNumber, qr
       ? `${frontendBase}/menu?table=${tableNumber}`
       : `${frontendBase}/menu`
   })()
+
+  // Expose the card ref and qr instance to the parent
+  useImperativeHandle(ref, () => ({
+    getCardElement: () => cardRef.current,
+    getQRInstance: () => qrInstanceRef.current,
+  }))
 
   // Initialize QR instance
   useEffect(() => {
@@ -97,8 +104,9 @@ export const QRPreview = ({ config, getQRStylingOptions, qrType, tableNumber, qr
       transition={{ duration: 0.3 }}
       className="flex flex-col items-center"
     >
-      {/* Preview Frame */}
+      {/* Preview Frame — this is the element we export */}
       <div
+        ref={cardRef}
         className="relative"
         style={{
           ...frameStyles,
@@ -150,16 +158,34 @@ export const QRPreview = ({ config, getQRStylingOptions, qrType, tableNumber, qr
           </div>
         )}
 
-        {/* Branding */}
-        <div className="text-center mt-2 opacity-40">
-          <span className="text-[9px] tracking-wider text-gray-500">Powered by QR Menu</span>
+        {/* Branding — Premium Signature */}
+        <div className="text-center mt-3 flex justify-center">
+          <span
+            className="inline-flex items-center gap-1 px-2.5 py-[3px] rounded-full"
+            style={{
+              fontSize: '8px',
+              fontWeight: 600,
+              letterSpacing: '0.08em',
+              color: safeConfig.dotsOptions?.color || '#2D2D2D',
+              opacity: 0.3,
+              border: `1px solid ${safeConfig.dotsOptions?.color || '#2D2D2D'}18`,
+              background: `${safeConfig.dotsOptions?.color || '#2D2D2D'}06`,
+            }}
+          >
+            <svg width="8" height="8" viewBox="0 0 16 16" fill="currentColor" style={{ opacity: 0.7 }}>
+              <path d="M8 0l1.796 5.528h5.813l-4.703 3.416 1.796 5.528L8 11.056l-4.702 3.416 1.796-5.528L.391 5.528h5.813z" />
+            </svg>
+            POWERED BY QRMENU
+          </span>
         </div>
       </div>
 
       {/* Label */}
-      <p className="text-xs text-gray-400 dark:text-gray-500 mt-4 text-center">
+      <p className="text-xs text-surface-500 dark:text-surface-500 mt-4 text-center" data-export-ignore="true">
         This is exactly how your QR code will look
       </p>
     </motion.div>
   )
-}
+})
+
+QRPreview.displayName = 'QRPreview'

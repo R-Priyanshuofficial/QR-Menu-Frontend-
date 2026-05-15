@@ -1,19 +1,42 @@
 import { useState, useRef, useEffect } from 'react'
-import { Outlet, useNavigate } from 'react-router-dom'
-import { Menu, Bell, Moon, Sun, User, Settings, LogOut, Clock } from 'lucide-react'
+import { Outlet, useNavigate, useLocation } from 'react-router-dom'
+import { Menu, Bell, Moon, Sun, User, Settings, LogOut, Clock, Search, Plus, ChevronRight } from 'lucide-react'
 import { AdminSidebar } from '../components/AdminSidebar'
 import { useAuth } from '@shared/contexts/AuthContext'
 import { useTheme } from '@shared/contexts/ThemeContext'
 import { useSocket } from '@shared/contexts/SocketContext'
+import { cn } from '@shared/utils/cn'
+import { motion, AnimatePresence } from 'framer-motion'
+import { CommandPalette } from '@shared/components/CommandPalette'
+
+// Breadcrumb mapping
+const breadcrumbLabels = {
+  'owner': null,
+  'dashboard': 'Dashboard',
+  'orders': 'Orders',
+  'analytics': 'Analytics',
+  'menu': 'Menu Editor',
+  'qr': 'QR Codes',
+  'designer': 'Designer',
+  'customize': 'Customize',
+  'billing': 'Billing',
+  'inventory': 'Inventory',
+  'staff': 'Staff',
+  'settings': 'Settings',
+  'profile': 'Profile',
+}
 
 export const AdminLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
   const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false)
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false)
   const { user, logout } = useAuth()
   const { isDark, toggleTheme } = useTheme()
   const { notifications, unreadCount, markNotificationsRead, clearNotifications } = useSocket()
   const navigate = useNavigate()
+  const location = useLocation()
   const dropdownRef = useRef(null)
   const notificationRef = useRef(null)
 
@@ -30,6 +53,16 @@ export const AdminLayout = () => {
     return `${diffDays}d ago`
   }
 
+  // Build breadcrumbs
+  const breadcrumbs = location.pathname.split('/').filter(Boolean).reduce((acc, segment) => {
+    const label = breadcrumbLabels[segment]
+    if (label) {
+      const path = acc.length > 0 ? `${acc[acc.length - 1].path}/${segment}` : `/${segment}`
+      acc.push({ label, path: path.startsWith('/owner') ? path : `/owner/${segment}` })
+    }
+    return acc
+  }, [])
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -45,33 +78,110 @@ export const AdminLayout = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  const handleCommandPaletteClose = (action) => {
+    if (action === 'toggle') {
+      setCommandPaletteOpen(true)
+    } else {
+      setCommandPaletteOpen(false)
+    }
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex">
+    <div className="min-h-screen bg-surface-50 dark:bg-surface-950 flex text-surface-900 dark:text-surface-100">
       {/* Sidebar */}
-      <AdminSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <AdminSidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+      />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col min-w-0 overflow-x-hidden">
         {/* Top Bar */}
-        <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-30">
-          <div className="flex items-center justify-between px-3 sm:px-4 h-14 sm:h-16">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="lg:hidden text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
-            >
-              <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
-            </button>
+        <header className={cn(
+          'sticky top-0 z-30',
+          'bg-white/90 dark:bg-surface-950/80',
+          'backdrop-blur-premium',
+          'border-b border-surface-200/80 dark:border-surface-800/40',
+        )}>
+          <div className="flex items-center justify-between px-4 sm:px-6 h-16">
+            {/* Left side */}
+            <div className="flex items-center gap-3 min-w-0">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden p-2 rounded-lg text-surface-500 hover:text-surface-800 dark:hover:text-surface-200 hover:bg-surface-200/80 dark:hover:bg-surface-800/50 transition-colors"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
 
-            <div className="flex items-center gap-2 sm:gap-4 ml-auto">
+              {/* Breadcrumbs (desktop) */}
+              <div className="hidden md:flex items-center gap-1 text-sm min-w-0">
+                {breadcrumbs.map((crumb, idx) => (
+                  <div key={crumb.path} className="flex items-center gap-1 min-w-0">
+                    {idx > 0 && <ChevronRight className="w-3.5 h-3.5 text-surface-600 flex-shrink-0" />}
+                    {idx === breadcrumbs.length - 1 ? (
+                      <span className="font-semibold text-surface-900 dark:text-surface-100 truncate">{crumb.label}</span>
+                    ) : (
+                      <button
+                        onClick={() => navigate(crumb.path)}
+                        className="text-surface-500 hover:text-surface-700 dark:hover:text-surface-300 transition-colors truncate"
+                      >
+                        {crumb.label}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Right side */}
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              {/* Command Palette Trigger */}
+              <button
+                onClick={() => setCommandPaletteOpen(true)}
+                className={cn(
+                  'hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg',
+                  'bg-surface-100 dark:bg-surface-800/40 hover:bg-surface-200 dark:hover:bg-surface-800/60',
+                  'border border-surface-300/80 dark:border-surface-700/30 hover:border-surface-400/80 dark:hover:border-surface-700/50',
+                  'text-surface-500 hover:text-surface-300',
+                  'transition-all duration-200 text-sm',
+                )}
+              >
+                <Search className="w-3.5 h-3.5" />
+                <span className="text-xs">Search...</span>
+                <kbd className="ml-4 hidden lg:inline-flex items-center px-1.5 py-0.5 text-[10px] font-medium text-surface-500 bg-surface-800 rounded border border-surface-700/40">
+                  ⌘K
+                </kbd>
+              </button>
+
+              {/* Mobile search */}
+              <button
+                onClick={() => setCommandPaletteOpen(true)}
+                  className="sm:hidden p-2 rounded-lg text-surface-500 hover:text-surface-800 dark:hover:text-surface-200 hover:bg-surface-200/80 dark:hover:bg-surface-800/50 transition-colors"
+              >
+                <Search className="w-5 h-5" />
+              </button>
+
+              {/* Quick Create */}
+              <button
+                onClick={() => navigate('/owner/qr/designer?type=global')}
+                className="p-2 rounded-lg text-surface-500 hover:text-surface-800 dark:hover:text-surface-200 hover:bg-surface-200/80 dark:hover:bg-surface-800/50 transition-colors"
+                title="Quick Create QR"
+              >
+                <Plus className="w-5 h-5" />
+              </button>
+
               {/* Dark Mode Toggle */}
               <button
                 onClick={toggleTheme}
-                className="p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                className="p-2 rounded-lg text-surface-500 hover:text-surface-800 dark:hover:text-surface-200 hover:bg-surface-200/80 dark:hover:bg-surface-800/50 transition-colors"
                 title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
               >
                 {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
               </button>
 
+              {/* Notifications */}
               <div className="relative" ref={notificationRef}>
                 <button
                   onClick={() => {
@@ -79,139 +189,173 @@ export const AdminLayout = () => {
                     setNotificationDropdownOpen(next)
                     if (next) markNotificationsRead()
                   }}
-                  className="relative p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                  className="relative p-2 rounded-lg text-surface-500 hover:text-surface-800 dark:hover:text-surface-200 hover:bg-surface-200/80 dark:hover:bg-surface-800/50 transition-colors"
                 >
-                  <Bell className="w-5 h-5 sm:w-6 sm:h-6" />
+                  <Bell className="w-5 h-5" />
                   {unreadCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] text-[10px] font-semibold bg-red-500 text-white rounded-full flex items-center justify-center px-1">
-                      {unreadCount}
-                    </span>
+                    <span className="absolute top-1 right-1 w-2 h-2 bg-primary-500 rounded-full ring-2 ring-surface-950 animate-pulse" />
                   )}
                 </button>
 
-                {notificationDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50">
-                    <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">Recent Orders</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Live updates from new activity</p>
-                      </div>
-                      <button
-                        className="text-xs text-primary-600 hover:text-primary-500"
-                        onClick={() => {
-                          clearNotifications()
-                          setNotificationDropdownOpen(false)
-                        }}
-                      >
-                        Clear
-                      </button>
-                    </div>
-                    <div className="max-h-80 overflow-y-auto">
-                      {notifications.length === 0 ? (
-                        <div className="px-4 py-6 text-center text-sm text-gray-500 dark:text-gray-400">
-                          <Clock className="w-5 h-5 mx-auto mb-2 text-gray-400" />
-                          No notifications yet
+                {/* Notification Dropdown */}
+                <AnimatePresence>
+                  {notificationDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                      transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
+                      className="absolute right-0 mt-2 w-[calc(100vw-2rem)] sm:w-80 max-w-sm bg-white/95 dark:bg-surface-900/95 backdrop-blur-xl rounded-2xl shadow-elevated-xl dark:shadow-dark-elevated-xl border border-surface-300/80 dark:border-surface-700/40 overflow-hidden z-50"
+                    >
+                      <div className="h-px bg-gradient-to-r from-transparent via-primary-500/40 to-transparent" />
+
+                      <div className="px-4 py-3 border-b border-surface-200/80 dark:border-surface-800/40 flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-semibold text-surface-900 dark:text-surface-100">Notifications</p>
+                          <p className="text-[11px] text-surface-500">Live order updates</p>
                         </div>
-                      ) : (
-                        notifications.map((notification) => (
-                          <div
-                            key={notification.id}
-                            className="px-4 py-3 border-b border-gray-100 dark:border-gray-700/50 last:border-b-0"
-                          >
-                            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                              {notification.title || 'Order Update'}
-                            </p>
-                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">
-                              {notification.message}
-                            </p>
-                            <div className="text-[11px] text-gray-400 mt-1 flex items-center gap-2 uppercase tracking-wide">
-                              <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 dark:bg-gray-700 px-2 py-0.5 text-gray-600 dark:text-gray-300">
-                                {notification.type?.replace('_', ' ') || 'update'}
-                              </span>
-                              <span>{formatTimeAgo(notification.timestamp)}</span>
+                        <button
+                          className="text-xs font-medium text-primary-400 hover:text-primary-300 transition-colors"
+                          onClick={() => {
+                            clearNotifications()
+                            setNotificationDropdownOpen(false)
+                          }}
+                        >
+                          Clear all
+                        </button>
+                      </div>
+                      <div className="max-h-80 overflow-y-auto thin-scrollbar">
+                        {notifications.length === 0 ? (
+                          <div className="px-4 py-8 text-center">
+                            <div className="w-10 h-10 rounded-xl bg-surface-800/50 flex items-center justify-center mx-auto mb-2.5">
+                              <Clock className="w-5 h-5 text-surface-600" />
                             </div>
+                            <p className="text-sm text-surface-500 font-medium">No notifications yet</p>
+                            <p className="text-xs text-surface-600 mt-0.5">New orders will appear here</p>
                           </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
+                        ) : (
+                          notifications.map((notification) => (
+                            <div
+                              key={notification.id}
+                              className="px-4 py-3 border-b border-surface-800/30 last:border-b-0 hover:bg-surface-800/30 transition-colors"
+                            >
+                              <p className="text-sm font-medium text-surface-900 dark:text-surface-100">
+                                {notification.title || 'Order Update'}
+                              </p>
+                              <p className="text-xs text-surface-500 dark:text-surface-400 mt-0.5">
+                                {notification.message}
+                              </p>
+                              <div className="flex items-center gap-2 mt-1.5">
+                                <span className="inline-flex items-center gap-1 rounded-md bg-surface-800 px-1.5 py-0.5 text-[10px] font-medium text-surface-500 uppercase tracking-wide">
+                                  {notification.type?.replace('_', ' ') || 'update'}
+                                </span>
+                                <span className="text-[10px] text-surface-500">{formatTimeAgo(notification.timestamp)}</span>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
+              {/* Separator */}
+              <div className="w-px h-6 bg-surface-800/60 mx-0.5 hidden sm:block" />
+
+              {/* Profile */}
               <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                  className="flex items-center gap-2 sm:gap-3 hover:opacity-80 transition-opacity"
+                  className="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-surface-200/80 dark:hover:bg-surface-800/50 transition-colors"
                 >
-                  <div className="text-right hidden sm:block">
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  <div className="hidden sm:block text-right">
+                    <p className="text-sm font-semibold text-surface-900 dark:text-surface-100 leading-tight">
                       {user?.name || 'Admin'}
                     </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400">{user?.email}</p>
+                    <p className="text-[10px] text-surface-500 leading-tight">{user?.role === 'staff' ? 'Staff' : 'Owner'}</p>
                   </div>
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary-600 text-white flex items-center justify-center font-semibold text-sm ring-2 ring-offset-2 ring-primary-600 dark:ring-offset-gray-800">
-                    {user?.name?.charAt(0) || 'A'}
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-600 text-white flex items-center justify-center font-bold text-xs shadow-sm shadow-primary-500/20">
+                    {user?.name?.charAt(0)?.toUpperCase() || 'A'}
                   </div>
                 </button>
 
-                {/* Dropdown Menu */}
-                {profileDropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50 animate-slide-down">
-                    <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">
-                        {user?.name || 'Admin'}
-                      </p>
-                      <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
-                        {user?.email}
-                      </p>
-                    </div>
-
-                    <button
-                      onClick={() => {
-                        navigate('/owner/profile')
-                        setProfileDropdownOpen(false)
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors"
+                {/* Profile Dropdown */}
+                <AnimatePresence>
+                  {profileDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                      transition={{ duration: 0.15, ease: [0.4, 0, 0.2, 1] }}
+                      className="absolute right-0 mt-2 w-56 bg-white/95 dark:bg-surface-900/95 backdrop-blur-xl rounded-2xl shadow-elevated-xl dark:shadow-dark-elevated-xl border border-surface-300/80 dark:border-surface-700/40 overflow-hidden z-50"
                     >
-                      <User className="w-4 h-4" />
-                      Edit Profile
-                    </button>
+                      <div className="h-px bg-gradient-to-r from-transparent via-primary-500/40 to-transparent" />
 
-                    <button
-                      onClick={() => {
-                        navigate('/owner/settings')
-                        setProfileDropdownOpen(false)
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors"
-                    >
-                      <Settings className="w-4 h-4" />
-                      Settings
-                    </button>
+                      <div className="px-4 py-3 border-b border-surface-200/80 dark:border-surface-800/40">
+                        <p className="text-sm font-semibold text-surface-900 dark:text-surface-100">
+                          {user?.name || 'Admin'}
+                        </p>
+                        <p className="text-xs text-surface-500 truncate">
+                          {user?.email}
+                        </p>
+                      </div>
 
-                    <div className="border-t border-gray-200 dark:border-gray-700 my-2"></div>
+                      <div className="py-1">
+                        <button
+                          onClick={() => {
+                            navigate('/owner/profile')
+                            setProfileDropdownOpen(false)
+                          }}
+                          className="w-full px-4 py-2.5 text-left text-sm text-surface-300 hover:bg-surface-800/50 flex items-center gap-2.5 transition-colors"
+                        >
+                          <User className="w-4 h-4 text-surface-500" />
+                          Edit Profile
+                        </button>
 
-                    <button
-                      onClick={() => {
-                        logout()
-                        setProfileDropdownOpen(false)
-                      }}
-                      className="w-full px-4 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      Logout
-                    </button>
-                  </div>
-                )}
+                        <button
+                          onClick={() => {
+                            navigate('/owner/settings')
+                            setProfileDropdownOpen(false)
+                          }}
+                          className="w-full px-4 py-2.5 text-left text-sm text-surface-300 hover:bg-surface-800/50 flex items-center gap-2.5 transition-colors"
+                        >
+                          <Settings className="w-4 h-4 text-surface-500" />
+                          Settings
+                        </button>
+                      </div>
+
+                      <div className="border-t border-surface-800/40 py-1">
+                        <button
+                          onClick={() => {
+                            logout()
+                            setProfileDropdownOpen(false)
+                          }}
+                          className="w-full px-4 py-2.5 text-left text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-2.5 transition-colors"
+                        >
+                          <LogOut className="w-4 h-4" />
+                          Logout
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-3 sm:p-4 md:p-6">
+        <main className="flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8 min-w-0 overflow-x-hidden">
           <Outlet />
         </main>
       </div>
+
+      {/* Command Palette */}
+      <CommandPalette
+        isOpen={commandPaletteOpen}
+        onClose={handleCommandPaletteClose}
+      />
     </div>
   )
 }

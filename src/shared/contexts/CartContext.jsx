@@ -7,91 +7,75 @@ export const CartProvider = ({ children }) => {
   const [items, setItems] = useState([])
   const [isOpen, setIsOpen] = useState(false)
 
-  // Load cart from localStorage on mount
   useEffect(() => {
     const savedCart = localStorage.getItem('cart')
     if (savedCart) {
-      try {
-        setItems(JSON.parse(savedCart))
-      } catch (error) {
-        console.error('Error loading cart:', error)
-      }
+      try { setItems(JSON.parse(savedCart)) } catch {}
     }
   }, [])
 
-  // Save cart to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('cart', JSON.stringify(items))
   }, [items])
 
+  // Generate a unique cart key from item + variant + addons
+  const getCartKey = (item) => {
+    const variantPart = item.selectedVariant?.name || ''
+    const addonsPart = (item.selectedAddons || []).map(a => a.name).sort().join(',')
+    return `${item.id}__${variantPart}__${addonsPart}`
+  }
+
   const addItem = (item) => {
     setItems((prev) => {
-      const existingIndex = prev.findIndex((i) => i.id === item.id)
-      
+      const cartKey = getCartKey(item)
+      const existingIndex = prev.findIndex((i) => i._cartKey === cartKey)
+
       if (existingIndex >= 0) {
-        // Item exists, increase quantity
         const newItems = [...prev]
-        newItems[existingIndex].quantity += 1
+        newItems[existingIndex].quantity += (item.quantity || 1)
         toast.success(`Added another ${item.name}`)
         return newItems
       } else {
-        // New item
         toast.success(`${item.name} added to cart`)
-        return [...prev, { ...item, quantity: 1 }]
+        return [...prev, { ...item, _cartKey: cartKey, quantity: item.quantity || 1 }]
       }
     })
   }
 
-  const removeItem = (itemId) => {
+  const removeItem = (cartKey) => {
     setItems((prev) => {
-      const item = prev.find((i) => i.id === itemId)
-      if (item) {
-        toast.success(`${item.name} removed from cart`)
-      }
-      return prev.filter((i) => i.id !== itemId)
+      const item = prev.find((i) => i._cartKey === cartKey || i.id === cartKey)
+      if (item) toast.success(`${item.name} removed`)
+      return prev.filter((i) => i._cartKey !== cartKey && i.id !== cartKey)
     })
   }
 
-  const updateQuantity = (itemId, quantity) => {
-    if (quantity <= 0) {
-      removeItem(itemId)
-      return
-    }
-
+  const updateQuantity = (cartKey, quantity) => {
+    if (quantity <= 0) { removeItem(cartKey); return }
     setItems((prev) =>
       prev.map((item) =>
-        item.id === itemId ? { ...item, quantity } : item
+        (item._cartKey === cartKey || item.id === cartKey) ? { ...item, quantity } : item
       )
     )
   }
 
-  const clearCart = () => {
-    setItems([])
-    toast.success('Cart cleared')
+  const clearCart = () => { setItems([]); toast.success('Cart cleared') }
+
+  const getItemPrice = (item) => {
+    const base = item.selectedVariant?.price || item.price || 0
+    const addonsTotal = (item.selectedAddons || []).reduce((s, a) => s + (a.price || 0), 0)
+    return base + addonsTotal
   }
 
-  const getTotalAmount = () => {
-    return items.reduce((total, item) => total + item.price * item.quantity, 0)
-  }
-
-  const getTotalItems = () => {
-    return items.reduce((total, item) => total + item.quantity, 0)
-  }
+  const getTotalAmount = () => items.reduce((total, item) => total + getItemPrice(item) * item.quantity, 0)
+  const getTotalItems = () => items.reduce((total, item) => total + item.quantity, 0)
 
   const openCart = () => setIsOpen(true)
   const closeCart = () => setIsOpen(false)
 
   const value = {
-    items,
-    isOpen,
-    addItem,
-    removeItem,
-    updateQuantity,
-    clearCart,
-    getTotalAmount,
-    getTotalItems,
-    openCart,
-    closeCart,
+    items, isOpen, addItem, removeItem, updateQuantity, clearCart,
+    getTotalAmount, getTotalItems, getItemPrice, openCart, closeCart,
   }
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>
@@ -99,8 +83,6 @@ export const CartProvider = ({ children }) => {
 
 export const useCart = () => {
   const context = useContext(CartContext)
-  if (!context) {
-    throw new Error('useCart must be used within CartProvider')
-  }
+  if (!context) throw new Error('useCart must be used within CartProvider')
   return context
 }

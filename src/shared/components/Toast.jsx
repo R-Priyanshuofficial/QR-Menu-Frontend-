@@ -3,56 +3,58 @@ import { Toaster } from 'react-hot-toast'
 export const ToastProvider = () => {
   return (
     <Toaster
-      position="bottom-center"
+      position="top-right"
       reverseOrder={false}
       gutter={8}
       containerStyle={{
-        bottom: 80,
+        top: 16,
+        right: 16,
       }}
       toastOptions={{
-        duration: 2500,
+        duration: 3000,
         style: {
-          background: 'linear-gradient(135deg, #1e293b 0%, #334155 100%)',
-          color: '#fff',
-          padding: '14px 20px',
-          borderRadius: '16px',
-          fontSize: '14px',
+          background: 'rgba(17, 24, 39, 0.95)',
+          color: '#f1f5f9',
+          padding: '12px 16px',
+          borderRadius: '12px',
+          fontSize: '13px',
           fontWeight: '500',
-          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1)',
-          backdropFilter: 'blur(12px)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          maxWidth: '320px',
+          fontFamily: 'Inter, system-ui, sans-serif',
+          boxShadow: '0 16px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.04)',
+          backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255, 255, 255, 0.06)',
+          maxWidth: '380px',
         },
         success: {
           duration: 2500,
           style: {
-            background: 'linear-gradient(135deg, #059669 0%, #10b981 100%)',
-            boxShadow: '0 10px 40px rgba(16, 185, 129, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2)',
+            background: 'rgba(17, 24, 39, 0.95)',
+            borderLeft: '3px solid #10b981',
           },
           iconTheme: {
-            primary: '#fff',
-            secondary: '#10b981',
+            primary: '#10b981',
+            secondary: '#fff',
           },
         },
         error: {
-          duration: 3500,
+          duration: 4000,
           style: {
-            background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)',
-            boxShadow: '0 10px 40px rgba(239, 68, 68, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2)',
+            background: 'rgba(17, 24, 39, 0.95)',
+            borderLeft: '3px solid #ef4444',
           },
           iconTheme: {
-            primary: '#fff',
-            secondary: '#ef4444',
+            primary: '#ef4444',
+            secondary: '#fff',
           },
         },
         loading: {
           style: {
-            background: 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)',
-            boxShadow: '0 10px 40px rgba(59, 130, 246, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.2)',
+            background: 'rgba(17, 24, 39, 0.95)',
+            borderLeft: '3px solid #0ea5e9',
           },
           iconTheme: {
-            primary: '#fff',
-            secondary: '#3b82f6',
+            primary: '#0ea5e9',
+            secondary: '#fff',
           },
         },
       }}

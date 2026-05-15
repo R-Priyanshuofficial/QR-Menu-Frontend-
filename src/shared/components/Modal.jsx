@@ -2,11 +2,13 @@ import { useEffect } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '../utils/cn'
 import { Button } from './Button'
+import { motion, AnimatePresence } from 'framer-motion'
 
 export const Modal = ({
   isOpen,
   onClose,
   title,
+  subtitle,
   children,
   footer,
   size = 'md',
@@ -37,59 +39,78 @@ export const Modal = ({
     }
   }, [isOpen])
 
-  if (!isOpen) return null
-
   const sizes = {
     sm: 'max-w-md',
     md: 'max-w-lg',
     lg: 'max-w-2xl',
     xl: 'max-w-4xl',
+    full: 'max-w-[90vw]',
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black bg-opacity-50 transition-opacity animate-fade-in"
-        onClick={onClose}
-      />
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm"
+            onClick={onClose}
+          />
 
-      {/* Modal */}
-      <div className="flex min-h-full items-center justify-center p-3 sm:p-4">
-        <div
-          className={cn(
-            'relative w-full bg-white dark:bg-gray-800 rounded-lg shadow-xl',
-            'animate-scale-in',
-            sizes[size],
-            className
-          )}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Header */}
-          {title && (
-            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
-              <button
-                onClick={onClose}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-          )}
+          {/* Modal */}
+          <div className="flex min-h-full items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              className={cn(
+                'relative w-full rounded-xl overflow-hidden',
+                'bg-surface-900/95 backdrop-blur-xl',
+                'border border-surface-700/40',
+                'shadow-dark-elevated-xl',
+                sizes[size],
+                className
+              )}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Accent line at top */}
+              <div className="h-px bg-gradient-to-r from-transparent via-primary-500/40 to-transparent" />
 
-          {/* Content */}
-          <div className="p-4 sm:p-6">{children}</div>
+              {/* Header */}
+              {title && (
+                <div className="flex items-center justify-between px-6 py-4 border-b border-surface-700/40">
+                  <div>
+                    <h3 className="text-lg font-semibold text-surface-100 font-display">{title}</h3>
+                    {subtitle && <p className="text-sm text-surface-500 mt-0.5">{subtitle}</p>}
+                  </div>
+                  <button
+                    onClick={onClose}
+                    className="p-1.5 rounded-lg text-surface-500 hover:text-surface-300 hover:bg-surface-800/50 transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              )}
 
-          {/* Footer */}
-          {footer && (
-            <div className="flex items-center justify-end gap-2 sm:gap-3 p-4 sm:p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-              {footer}
-            </div>
-          )}
+              {/* Content */}
+              <div className="p-6">{children}</div>
+
+              {/* Footer */}
+              {footer && (
+                <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-surface-700/40 bg-surface-950/30">
+                  {footer}
+                </div>
+              )}
+            </motion.div>
+          </div>
         </div>
-      </div>
-    </div>
+      )}
+    </AnimatePresence>
   )
 }
 
@@ -122,7 +143,7 @@ export const ConfirmModal = ({
         </>
       }
     >
-      <p className="text-gray-600 dark:text-gray-300">{message}</p>
+      <p className="text-surface-400">{message}</p>
     </Modal>
   )
 }

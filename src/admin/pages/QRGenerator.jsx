@@ -6,6 +6,8 @@ import { Input } from '@shared/components/Input'
 import { Modal, ConfirmModal } from '@shared/components/Modal'
 import { QRDashboard } from '../components/qr/QRDashboard'
 import { PageLoader } from '@shared/components/Spinner'
+import { PageHeader } from '@shared/components/PageHeader'
+import { EmptyState } from '@shared/components/EmptyState'
 import { qrAPI } from '@shared/api/endpoints'
 import toast from 'react-hot-toast'
 import { motion } from 'framer-motion'
@@ -74,64 +76,36 @@ export const QRGenerator = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
-      >
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">QR Code Manager</h1>
-          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Create and manage QR codes for your restaurant</p>
-        </div>
-      </motion.div>
+      <PageHeader
+        title="QR Code Manager"
+        subtitle="Create and manage QR codes for your restaurant"
+        icon={QrIcon}
+        actions={
+          <div className="flex items-center gap-3">
+            <Button variant="outline" leftIcon={<Plus className="w-4 h-4" />} onClick={() => openDesigner('table')}>
+              Table QR
+            </Button>
+            <Button variant="gradient" leftIcon={<Plus className="w-4 h-4" />} onClick={() => openDesigner('global')}>
+              Global QR
+            </Button>
+          </div>
+        }
+      />
 
-      {/* Generate Buttons */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="flex gap-4"
-      >
-        <Button
-          leftIcon={<Plus className="w-5 h-5" />}
-          onClick={() => openDesigner('global')}
-          className="bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600"
-        >
-          Design Global QR
-        </Button>
-        <Button
-          variant="outline"
-          leftIcon={<Plus className="w-5 h-5" />}
-          onClick={() => openDesigner('table')}
-        >
-          Design Table QR
-        </Button>
-      </motion.div>
-
-      {/* QR Codes List */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-      >
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
         {qrCodes.length > 0 ? (
           <QRDashboard qrCodes={qrCodes} onDelete={handleDelete} onRefresh={fetchQRCodes} />
         ) : (
-          <div className="text-center py-12">
-            <QrIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 dark:text-gray-400 text-base sm:text-lg mb-2">No QR codes yet</p>
-            <p className="text-gray-400 dark:text-gray-500 text-xs sm:text-sm mb-6">
-              Design your first QR code to get started
-            </p>
-            <Button onClick={() => openDesigner('global')}>
-              Design QR Code
-            </Button>
-          </div>
+          <EmptyState
+            icon={QrIcon}
+            title="No QR codes yet"
+            description="Design your first QR code to get started. Table QRs are for specific tables, while Global QRs are for general use."
+            actionLabel="Design QR Code"
+            onAction={() => openDesigner('global')}
+          />
         )}
       </motion.div>
 
-      {/* Table Number Input Modal */}
       <Modal
         isOpen={showTableNumberModal}
         onClose={() => {
@@ -147,20 +121,20 @@ export const QRGenerator = () => {
             }}>
               Cancel
             </Button>
-            <Button onClick={handleTableNumberSubmit}>
+            <Button variant="gradient" onClick={handleTableNumberSubmit}>
               Next
             </Button>
           </>
         }
       >
-        <div>
-          <p className="text-gray-600 dark:text-gray-300 mb-4">
+        <div className="space-y-4">
+          <p className="text-surface-600 dark:text-surface-400 text-sm">
             Enter the table number for this QR code. This will be displayed when the QR is scanned.
           </p>
           <Input
             label="Table Number"
             type="number"
-            placeholder="Enter table number"
+            placeholder="e.g. 12"
             value={tableNumber}
             onChange={(e) => setTableNumber(e.target.value)}
             required
@@ -169,7 +143,6 @@ export const QRGenerator = () => {
         </div>
       </Modal>
 
-      {/* Delete Confirmation */}
       <ConfirmModal
         isOpen={deleteModal.isOpen}
         onClose={() => setDeleteModal({ isOpen: false, qrId: null })}

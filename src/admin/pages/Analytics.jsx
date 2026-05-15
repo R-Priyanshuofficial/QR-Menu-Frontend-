@@ -41,6 +41,7 @@ import {
   Package
 } from 'lucide-react';
 import { Card, CardContent } from '@shared/components/Card';
+import { PageHeader } from '@shared/components/PageHeader';
 import { Button } from '@shared/components/Button';
 import { PageLoader } from '@shared/components/Spinner';
 import { formatCurrency } from '@shared/utils/formatters';
@@ -271,39 +272,39 @@ export const Analytics = () => {
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50"
+                  className="absolute right-0 mt-2 w-56 bg-surface-800 dark:bg-surface-800 rounded-lg shadow-xl border border-surface-700/40 py-2 z-50"
                 >
                   <button
                     onClick={handleTestPDF}
-                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 border-b border-gray-200 dark:border-gray-700"
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-surface-700/50 dark:hover:bg-surface-700 flex items-center gap-2 border-b border-surface-700/40"
                   >
                     <Zap className="w-4 h-4 text-yellow-600" />
                     Test PDF (Simple)
                   </button>
                   <button
                     onClick={handleExportComplete}
-                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-surface-700/50 dark:hover:bg-surface-700 flex items-center gap-2"
                   >
                     <Activity className="w-4 h-4 text-purple-600" />
                     Complete Report
                   </button>
                   <button
                     onClick={handleExportRevenue}
-                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-surface-700/50 dark:hover:bg-surface-700 flex items-center gap-2"
                   >
                     <DollarSign className="w-4 h-4 text-green-600" />
                     Revenue Report
                   </button>
                   <button
                     onClick={handleExportOrders}
-                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-surface-700/50 dark:hover:bg-surface-700 flex items-center gap-2"
                   >
                     <ShoppingBag className="w-4 h-4 text-blue-600" />
                     Orders Report
                   </button>
                   <button
                     onClick={handleExportMenu}
-                    className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+                    className="w-full px-4 py-2 text-left text-sm hover:bg-surface-700/50 dark:hover:bg-surface-700 flex items-center gap-2"
                   >
                     <Award className="w-4 h-4 text-pink-600" />
                     Menu Performance
@@ -326,7 +327,7 @@ export const Analytics = () => {
           </Button>
 
           {/* Period Selector */}
-          <div className="flex items-center gap-1 bg-white dark:bg-gray-800 rounded-lg p-1 shadow-sm border border-gray-200 dark:border-gray-700 overflow-x-auto">
+          <div className="flex items-center gap-1 bg-surface-800 dark:bg-surface-800 rounded-lg p-1 shadow-dark-elevated border border-surface-700/40 overflow-x-auto">
             {periodOptions.map((option) => (
               <button
                 key={option.value}
@@ -335,7 +336,7 @@ export const Analytics = () => {
                 className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all whitespace-nowrap ${
                   period === option.value
                     ? 'bg-primary-600 text-white shadow'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    : 'text-surface-400 hover:bg-surface-700/50 dark:hover:bg-surface-700'
                 } disabled:opacity-50`}
               >
                 {option.label}
@@ -351,10 +352,10 @@ export const Analytics = () => {
           animate={{ opacity: 1, y: 0 }}
           className="w-full"
         >
-          <Card className="bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm">
+          <Card className="bg-surface-800 dark:bg-surface-800 border-surface-700/40 shadow-dark-elevated">
             <div className="p-4 flex flex-col xl:flex-row gap-4 items-start xl:items-end">
               <div className="w-full xl:flex-1">
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+                <label className="block text-xs font-medium text-surface-500 uppercase tracking-wide mb-1">
                   <Calendar className="w-4 h-4 inline mr-1 text-primary-500" />
                   Start Date
                 </label>
@@ -363,11 +364,11 @@ export const Analytics = () => {
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
                   max={endDate || new Date().toISOString().split('T')[0]}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-gray-100"
+                  className="w-full px-4 py-2 border border-surface-300 border-surface-600 rounded-lg focus:ring-2 focus:ring-primary-500 bg-surface-800/50 text-surface-100"
                 />
               </div>
               <div className="w-full xl:flex-1">
-                <label className="block text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-1">
+                <label className="block text-xs font-medium text-surface-500 uppercase tracking-wide mb-1">
                   <Calendar className="w-4 h-4 inline mr-1 text-primary-500" />
                   End Date
                 </label>
@@ -377,7 +378,7 @@ export const Analytics = () => {
                   onChange={(e) => setEndDate(e.target.value)}
                   min={startDate}
                   max={new Date().toISOString().split('T')[0]}
-                  className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-primary-500 dark:bg-gray-700 dark:text-gray-100"
+                  className="w-full px-4 py-2 border border-surface-300 border-surface-600 rounded-lg focus:ring-2 focus:ring-primary-500 bg-surface-800/50 text-surface-100"
                 />
               </div>
               <div className="flex gap-2 w-full xl:w-auto">
@@ -411,10 +412,10 @@ export const Analytics = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-surface-100 mb-2">
               Analytics Dashboard
             </h1>
-            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+            <p className="text-sm sm:text-base text-surface-400">
               Comprehensive insights into your restaurant's performance
             </p>
           </div>
@@ -426,19 +427,19 @@ export const Analytics = () => {
         <Card>
           <div className="p-12">
             <div className="text-center max-w-md mx-auto">
-              <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                <TrendingUp className="w-8 h-8 text-primary-600 dark:text-primary-400" />
+              <div className="w-16 h-16 bg-primary-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <TrendingUp className="w-8 h-8 text-primary-400" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+              <h3 className="text-xl font-semibold text-surface-100 mb-2">
                 No Analytics Data Yet
               </h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
+              <p className="text-surface-400 mb-6">
                 {period === 'all' 
                   ? 'Start receiving orders to see comprehensive analytics and insights about your restaurant\'s performance.'
                   : `No orders found for the selected period. Try selecting "Lifetime" or a different date range.`
                 }
               </p>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
+              <p className="text-sm text-surface-500">
                 Analytics will automatically populate as customers place orders through your QR menu system.
               </p>
             </div>
@@ -458,12 +459,12 @@ export const Analytics = () => {
         <CardContent className="p-6">
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">{title}</p>
-              <p className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+              <p className="text-sm text-surface-400 mb-1">{title}</p>
+              <p className="text-2xl font-bold text-surface-100 mb-2">
                 {value}
               </p>
               {subtitle && (
-                <p className="text-xs text-gray-500 dark:text-gray-400">{subtitle}</p>
+                <p className="text-xs text-surface-500">{subtitle}</p>
               )}
               {trend && (
                 <div className={`flex items-center mt-2 text-xs font-medium ${
@@ -496,10 +497,10 @@ export const Analytics = () => {
         className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
       >
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-surface-100 mb-2">
             Analytics Dashboard
           </h1>
-          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+          <p className="text-sm sm:text-base text-surface-400">
             Comprehensive insights into your restaurant's performance
           </p>
         </div>
@@ -581,58 +582,58 @@ export const Analytics = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
       >
-        <Card className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border-purple-200 dark:border-purple-800">
+        <Card className="bg-gradient-to-r from-transparent to-transparent from-violet-500/10 to-primary-500/10 border-violet-500/20">
           <div className="p-6">
             <div className="flex items-center gap-2 mb-4">
               <Target className="w-5 h-5 text-purple-600" />
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              <h2 className="text-lg font-semibold text-surface-100">
                 Key Performance Insights
               </h2>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
+              <div className="bg-surface-800 dark:bg-surface-800 rounded-lg p-4 shadow-dark-elevated">
                 <div className="flex items-center gap-2 mb-2">
                   <Zap className="w-4 h-4 text-green-600" />
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Completion Rate</p>
+                  <p className="text-sm font-medium text-surface-400">Completion Rate</p>
                 </div>
                 <p className="text-2xl font-bold text-green-600">
                   {stats.orders.total > 0 ? ((stats.orders.completed / stats.orders.total) * 100).toFixed(1) : 0}%
                 </p>
-                <p className="text-xs text-gray-500 mt-1">Orders successfully completed</p>
+                <p className="text-xs text-surface-400 mt-1">Orders successfully completed</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
+              <div className="bg-surface-800 dark:bg-surface-800 rounded-lg p-4 shadow-dark-elevated">
                 <div className="flex items-center gap-2 mb-2">
                   <Activity className="w-4 h-4 text-red-600" />
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Cancellation Rate</p>
+                  <p className="text-sm font-medium text-surface-400">Cancellation Rate</p>
                 </div>
                 <p className="text-2xl font-bold text-red-600">
                   {stats.orders.total > 0 ? ((stats.orders.cancelled / stats.orders.total) * 100).toFixed(1) : 0}%
                 </p>
-                <p className="text-xs text-gray-500 mt-1">Orders cancelled</p>
+                <p className="text-xs text-surface-400 mt-1">Orders cancelled</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
+              <div className="bg-surface-800 dark:bg-surface-800 rounded-lg p-4 shadow-dark-elevated">
                 <div className="flex items-center gap-2 mb-2">
                   <Users className="w-4 h-4 text-blue-600" />
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Revenue/Customer</p>
+                  <p className="text-sm font-medium text-surface-400">Revenue/Customer</p>
                 </div>
                 <p className="text-2xl font-bold text-blue-600">
                   {formatCurrency(stats.customers.unique > 0 ? stats.revenue.total / stats.customers.unique : 0)}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">Average spend per customer</p>
+                <p className="text-xs text-surface-400 mt-1">Average spend per customer</p>
               </div>
-              <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow-sm">
+              <div className="bg-surface-800 dark:bg-surface-800 rounded-lg p-4 shadow-dark-elevated">
                 <div className="flex items-center gap-2 mb-2">
                   {stats.revenue.growth >= 0 ? (
                     <TrendingUp className="w-4 h-4 text-green-600" />
                   ) : (
                     <TrendingDown className="w-4 h-4 text-red-600" />
                   )}
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Growth Trend</p>
+                  <p className="text-sm font-medium text-surface-400">Growth Trend</p>
                 </div>
                 <p className={`text-2xl font-bold ${stats.revenue.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                   {stats.revenue.growth >= 0 ? '+' : ''}{stats.revenue.growth}%
                 </p>
-                <p className="text-xs text-gray-500 mt-1">Compared to previous period</p>
+                <p className="text-xs text-surface-400 mt-1">Compared to previous period</p>
               </div>
             </div>
           </div>
@@ -647,20 +648,20 @@ export const Analytics = () => {
       >
         <Card>
           <div className="p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            <h2 className="text-xl font-semibold text-surface-100 mb-4">
               Revenue Trend (Last 7 Days)
             </h2>
             <div className="space-y-3">
               {stats.revenueTrend.map((day, index) => (
                 <div key={index} className="flex items-center gap-4">
-                  <div className="w-24 text-sm text-gray-600 dark:text-gray-400">
+                  <div className="w-24 text-sm text-surface-400">
                     {new Date(day.date).toLocaleDateString('en-US', { 
                       month: 'short', 
                       day: 'numeric' 
                     })}
                   </div>
                   <div className="flex-1">
-                    <div className="h-8 bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden">
+                    <div className="h-8 bg-surface-700/50 bg-surface-800/50 rounded-lg overflow-hidden">
                       <div
                         className="h-full bg-gradient-to-r from-primary-500 to-primary-600 flex items-center justify-end pr-3"
                         style={{
@@ -673,7 +674,7 @@ export const Analytics = () => {
                       </div>
                     </div>
                   </div>
-                  <div className="w-16 text-right text-sm text-gray-600 dark:text-gray-400">
+                  <div className="w-16 text-right text-sm text-surface-400">
                     {day.orders} orders
                   </div>
                 </div>
@@ -694,7 +695,7 @@ export const Analytics = () => {
         >
           <Card className="h-full">
             <div className="p-6 h-full flex flex-col">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              <h2 className="text-xl font-semibold text-surface-100 mb-4">
                 Top Selling Items
               </h2>
               <div className="space-y-3 flex-1">
@@ -702,32 +703,32 @@ export const Analytics = () => {
                   stats.popularItems.slice(0, 8).map((item, index) => (
                     <div
                       key={index}
-                      className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                      className="flex items-center justify-between p-3 bg-surface-800/50 bg-surface-800/50/50 rounded-lg"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/30 flex items-center justify-center">
-                          <span className="text-sm font-bold text-primary-600 dark:text-primary-400">
+                        <div className="w-8 h-8 rounded-full bg-primary-500/10 flex items-center justify-center">
+                          <span className="text-sm font-bold text-primary-400">
                             #{index + 1}
                           </span>
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900 dark:text-gray-100">
+                          <p className="font-medium text-surface-100">
                             {item.name}
                           </p>
-                          <p className="text-xs text-gray-600 dark:text-gray-400">
+                          <p className="text-xs text-surface-400">
                             {item.quantity} sold
                           </p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold text-primary-600 dark:text-primary-400">
+                        <p className="font-semibold text-primary-400">
                           {formatCurrency(item.revenue)}
                         </p>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <div className="text-center py-8 text-surface-500">
                     <ShoppingBag className="w-12 h-12 mx-auto mb-2 opacity-50" />
                     <p className="text-sm">No items sold yet</p>
                   </div>
@@ -746,7 +747,7 @@ export const Analytics = () => {
         >
           <Card className="h-full">
             <div className="p-6 h-full flex flex-col">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              <h2 className="text-xl font-semibold text-surface-100 mb-4">
                 Payment Methods
               </h2>
               <div className="space-y-4">
@@ -759,16 +760,16 @@ export const Analytics = () => {
                       <div key={method}>
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center gap-2">
-                            <CreditCard className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-                            <span className="text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">
+                            <CreditCard className="w-4 h-4 text-surface-400" />
+                            <span className="text-sm font-medium text-surface-100 capitalize">
                               {method}
                             </span>
                           </div>
-                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                          <span className="text-sm text-surface-400">
                             {count} orders ({percentage}%)
                           </span>
                         </div>
-                        <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div className="h-2 bg-surface-700/50 bg-surface-800/50 rounded-full overflow-hidden">
                           <div
                             className="h-full bg-primary-500"
                             style={{ width: `${percentage}%` }}
@@ -778,30 +779,30 @@ export const Analytics = () => {
                     );
                   })
                 ) : (
-                  <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <div className="text-center py-8 text-surface-500">
                     <CreditCard className="w-12 h-12 mx-auto mb-2 opacity-50" />
                     <p className="text-sm">No payment data yet</p>
                   </div>
                 )}
               </div>
 
-              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <div className="mt-6 pt-6 border-t border-surface-700/40">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Peak Hour</span>
-                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <span className="text-sm text-surface-400">Peak Hour</span>
+                    <span className="text-sm font-medium text-surface-100">
                       {formatTime12Hour(stats.peakHour)} - {formatTime12Hour(stats.peakHour + 1)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Total QR Scans</span>
-                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <span className="text-sm text-surface-400">Total QR Scans</span>
+                    <span className="text-sm font-medium text-surface-100">
                       {stats.qrStats.totalScans}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">Active QR Codes</span>
-                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    <span className="text-sm text-surface-400">Active QR Codes</span>
+                    <span className="text-sm font-medium text-surface-100">
                       {stats.qrStats.totalCodes}
                     </span>
                   </div>
@@ -809,8 +810,8 @@ export const Analytics = () => {
               </div>
 
               {/* QR Code Engagement Metrics */}
-              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+              <div className="mt-6 pt-6 border-t border-surface-700/40">
+                <h3 className="text-sm font-semibold text-surface-100 mb-4 flex items-center gap-2">
                   <Target className="w-4 h-4 text-green-600" />
                   QR Engagement
                 </h3>
@@ -829,7 +830,7 @@ export const Analytics = () => {
                           ? ((stats.orders.total / stats.qrStats.totalScans) * 100).toFixed(1)
                           : 0}%
                       </span>
-                      <span className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                      <span className="text-xs text-surface-400 mb-1">
                         {stats.orders.total}/{stats.qrStats.totalScans} orders
                       </span>
                     </div>
@@ -849,14 +850,14 @@ export const Analytics = () => {
                           ? (stats.qrStats.totalScans / stats.qrStats.totalCodes).toFixed(1)
                           : 0}
                       </span>
-                      <span className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                      <span className="text-xs text-surface-400 mb-1">
                         scans/code
                       </span>
                     </div>
                   </div>
 
                   {/* Revenue per Scan */}
-                  <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-3">
+                  <div className="bg-gradient-to-r from-transparent to-transparent from-violet-500/10 to-primary-500/10 rounded-lg p-3">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-xs font-medium text-gray-700 dark:text-gray-300">
                         Revenue per Scan
@@ -869,7 +870,7 @@ export const Analytics = () => {
                           ? stats.revenue.total / stats.qrStats.totalScans
                           : 0)}
                       </span>
-                      <span className="text-xs text-gray-600 dark:text-gray-400 mb-1">
+                      <span className="text-xs text-surface-400 mb-1">
                         avg value
                       </span>
                     </div>
@@ -890,7 +891,7 @@ export const Analytics = () => {
       >
         <Card>
           <div className="p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
+            <h2 className="text-xl font-semibold text-surface-100 mb-6 flex items-center gap-2">
               <Activity className="w-5 h-5 text-purple-600" />
               Order Status Distribution
             </h2>
@@ -949,7 +950,7 @@ export const Analytics = () => {
                         <div className={`w-3 h-3 rounded-full ${statusColor.dot}`}></div>
                         <div>
                           <p className={`font-semibold capitalize ${statusColor.text}`}>{status}</p>
-                          <p className="text-xs text-gray-600 dark:text-gray-400">{percentage}% of total</p>
+                          <p className="text-xs text-surface-400">{percentage}% of total</p>
                         </div>
                       </div>
                       <p className={`text-2xl font-bold ${statusColor.text}`}>{count}</p>
@@ -970,7 +971,7 @@ export const Analytics = () => {
       >
         <Card>
           <div className="p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            <h2 className="text-xl font-semibold text-surface-100 mb-4">
               Hourly Order Distribution
             </h2>
             <ResponsiveContainer width="100%" height={300}>
@@ -1012,7 +1013,7 @@ export const Analytics = () => {
       >
         <Card>
           <div className="p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            <h2 className="text-xl font-semibold text-surface-100 mb-4">
               Performance by Day of Week
             </h2>
             <ResponsiveContainer width="100%" height={300}>
@@ -1050,7 +1051,7 @@ export const Analytics = () => {
       >
         <Card>
           <div className="p-6">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+            <h2 className="text-xl font-semibold text-surface-100 mb-4">
               Revenue Trend Analysis (Last 7 Days)
             </h2>
             <ResponsiveContainer width="100%" height={300}>
@@ -1111,7 +1112,7 @@ export const Analytics = () => {
         >
           <Card>
             <div className="p-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
+              <h2 className="text-xl font-semibold text-surface-100 mb-6 flex items-center gap-2">
                 <Timer className="w-5 h-5 text-blue-600" />
                 Order Fulfillment Metrics
               </h2>
@@ -1122,13 +1123,13 @@ export const Analytics = () => {
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <Clock className="w-5 h-5 text-blue-600" />
-                      <span className="font-semibold text-gray-900 dark:text-gray-100">Avg. Preparation Time</span>
+                      <span className="font-semibold text-surface-100">Avg. Preparation Time</span>
                     </div>
                     <span className="text-3xl font-bold text-blue-600">
                       {stats.orders.total > 0 ? Math.round((stats.orders.completed + stats.orders.preparing) / 2) : 0} min
                     </span>
                   </div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                  <p className="text-xs text-surface-400">
                     Time from order placed to ready for pickup
                   </p>
                 </div>
@@ -1138,7 +1139,7 @@ export const Analytics = () => {
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <CheckCircle className="w-5 h-5 text-green-600" />
-                      <span className="font-semibold text-gray-900 dark:text-gray-100">Fulfillment Rate</span>
+                      <span className="font-semibold text-surface-100">Fulfillment Rate</span>
                     </div>
                     <span className="text-3xl font-bold text-green-600">
                       {stats.orders.total > 0 
@@ -1146,7 +1147,7 @@ export const Analytics = () => {
                         : 0}%
                     </span>
                   </div>
-                  <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
+                  <div className="flex items-center justify-between text-xs text-surface-400">
                     <span>{stats.orders.completed} completed</span>
                     <span>{stats.orders.cancelled} cancelled</span>
                   </div>
@@ -1157,7 +1158,7 @@ export const Analytics = () => {
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <Package className="w-5 h-5 text-orange-600" />
-                      <span className="font-semibold text-gray-900 dark:text-gray-100">Active Orders</span>
+                      <span className="font-semibold text-surface-100">Active Orders</span>
                     </div>
                     <span className="text-3xl font-bold text-orange-600">
                       {stats.orders.pending + stats.orders.preparing + stats.orders.ready}
@@ -1166,25 +1167,25 @@ export const Analytics = () => {
                   <div className="grid grid-cols-3 gap-2 text-xs">
                     <div className="text-center">
                       <p className="text-yellow-600 dark:text-yellow-400 font-bold">{stats.orders.pending}</p>
-                      <p className="text-gray-600 dark:text-gray-400">Pending</p>
+                      <p className="text-surface-400">Pending</p>
                     </div>
                     <div className="text-center">
                       <p className="text-purple-600 dark:text-purple-400 font-bold">{stats.orders.preparing}</p>
-                      <p className="text-gray-600 dark:text-gray-400">Preparing</p>
+                      <p className="text-surface-400">Preparing</p>
                     </div>
                     <div className="text-center">
                       <p className="text-green-600 dark:text-green-400 font-bold">{stats.orders.ready}</p>
-                      <p className="text-gray-600 dark:text-gray-400">Ready</p>
+                      <p className="text-surface-400">Ready</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Efficiency Score */}
-                <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-4">
+                <div className="bg-gradient-to-r from-transparent to-transparent from-violet-500/10 to-primary-500/10 rounded-lg p-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <Zap className="w-5 h-5 text-purple-600" />
-                      <span className="font-semibold text-gray-900 dark:text-gray-100">Efficiency Score</span>
+                      <span className="font-semibold text-surface-100">Efficiency Score</span>
                     </div>
                     <span className="text-3xl font-bold text-purple-600">
                       {stats.orders.total > 0 
@@ -1193,7 +1194,7 @@ export const Analytics = () => {
                         : 0}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                  <p className="text-xs text-surface-400">
                     Based on completion rate and cancellations
                   </p>
                 </div>
@@ -1210,7 +1211,7 @@ export const Analytics = () => {
         >
           <Card>
             <div className="p-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
+              <h2 className="text-xl font-semibold text-surface-100 mb-6 flex items-center gap-2">
                 <Activity className="w-5 h-5 text-red-600" />
                 Hourly Activity Heatmap
               </h2>
@@ -1250,7 +1251,7 @@ export const Analytics = () => {
                             <span className={`font-bold ${textColor} text-sm w-20`}>
                               {formatTime12Hour(hour.hour)}
                             </span>
-                            <span className="text-xs text-gray-600 dark:text-gray-400">
+                            <span className="text-xs text-surface-400">
                               {hour.orders} orders
                             </span>
                           </div>
@@ -1258,7 +1259,7 @@ export const Analytics = () => {
                             {formatCurrency(hour.revenue)}
                           </span>
                         </div>
-                        <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div className="h-2 bg-gray-200 bg-surface-800/50 rounded-full overflow-hidden">
                           <div
                             className={`h-full ${barColor} transition-all duration-300`}
                             style={{ width: `${intensity}%` }}
@@ -1269,8 +1270,8 @@ export const Analytics = () => {
                   })}
               </div>
               
-              <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
+              <div className="mt-6 pt-4 border-t border-surface-700/40">
+                <div className="flex items-center justify-between text-xs text-surface-400">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-red-500 rounded"></div>
                     <span>Peak Hours</span>

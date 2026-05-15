@@ -1,110 +1,159 @@
-import { Clock, User, Phone, CheckCircle } from 'lucide-react'
-import { Card } from '@shared/components/Card'
-import { Button } from '@shared/components/Button'
+import { cn } from '@shared/utils/cn'
+import { Clock, CheckCircle, ChefHat, ArrowRight, User, Hash, MapPin } from 'lucide-react'
 import { Badge } from '@shared/components/Badge'
-import { formatCurrency, getRelativeTime } from '@shared/utils/formatters'
+import { Button } from '@shared/components/Button'
+import { formatCurrency } from '@shared/utils/formatters'
 import { motion } from 'framer-motion'
 
+const statusConfig = {
+  pending: {
+    color: 'warning',
+    label: 'Pending',
+    icon: Clock,
+    accent: 'border-l-amber-500',
+  },
+  ready: {
+    color: 'info',
+    label: 'Ready',
+    icon: ChefHat,
+    accent: 'border-l-sky-500',
+  },
+  completed: {
+    color: 'success',
+    label: 'Completed',
+    icon: CheckCircle,
+    accent: 'border-l-emerald-500',
+  },
+}
+
 export const OrderCard = ({ order, onMarkReady, onMarkCompleted }) => {
-  const getStatusVariant = (status) => {
-    const variants = {
-      pending: 'warning',
-      preparing: 'info',
-      ready: 'success',
-      completed: 'gray',
-    }
-    return variants[status] || 'gray'
+  const config = statusConfig[order.status] || statusConfig.pending
+  const StatusIcon = config.icon
+
+  const timeAgo = () => {
+    if (!order.createdAt) return ''
+    const now = Date.now()
+    const time = new Date(order.createdAt).getTime()
+    const diffMinutes = Math.floor((now - time) / (1000 * 60))
+    if (diffMinutes < 1) return 'Just now'
+    if (diffMinutes < 60) return `${diffMinutes}m ago`
+    const diffHours = Math.floor(diffMinutes / 60)
+    if (diffHours < 24) return `${diffHours}h ago`
+    return `${Math.floor(diffHours / 24)}d ago`
   }
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      layout
+      initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      className={cn(
+        'relative rounded-xl overflow-hidden',
+        'bg-surface-900/80 border border-surface-700/40',
+        'shadow-dark-elevated hover:shadow-dark-elevated-md',
+        'transition-all duration-200',
+        'border-l-[3px]',
+        config.accent,
+      )}
     >
-      <Card className="hover:shadow-lg transition-shadow">
-        <div className="p-6">
-          {/* Header */}
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-gray-100">
-                Order #{order.id.slice(-8).toUpperCase()}
-              </h3>
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 flex items-center gap-1 mt-1">
-                <Clock className="w-4 h-4" />
-                {getRelativeTime(order.createdAt)}
-              </p>
-            </div>
-            <Badge variant={getStatusVariant(order.status)}>
-              {order.status.toUpperCase()}
-            </Badge>
+      {/* Header */}
+      <div className="px-4 py-3.5 flex items-center justify-between border-b border-surface-700/30">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className={cn(
+            'w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0',
+            order.status === 'pending' && 'bg-amber-500/10',
+            order.status === 'ready' && 'bg-sky-500/10',
+            order.status === 'completed' && 'bg-emerald-500/10',
+          )}>
+            <StatusIcon className={cn(
+              'w-4 h-4',
+              order.status === 'pending' && 'text-amber-400',
+              order.status === 'ready' && 'text-sky-400',
+              order.status === 'completed' && 'text-emerald-400',
+            )} />
           </div>
-
-          {/* Customer Info */}
-          <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-            <div className="flex items-center gap-2 text-xs sm:text-sm mb-1">
-              <User className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-              <span className="font-medium text-gray-900 dark:text-gray-100">{order.customerName}</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs sm:text-sm">
-              <Phone className="w-4 h-4 text-gray-600 dark:text-gray-400" />
-              <span className="text-gray-600 dark:text-gray-400">{order.customerPhone}</span>
-            </div>
-            {order.tableNumber && (
-              <div className="mt-2">
-                <Badge variant="info" className="text-xs">
-                  Table {order.tableNumber}
-                </Badge>
-              </div>
-            )}
-          </div>
-
-          {/* Order Items */}
-          <div className="mb-4">
-            <h4 className="text-xs sm:text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Items:</h4>
-            <div className="space-y-1">
-              {order.items.map((item, index) => (
-                <div key={index} className="flex justify-between text-xs sm:text-sm">
-                  <span className="text-gray-700 dark:text-gray-300">
-                    {item.quantity}x {item.name}
-                  </span>
-                  <span className="font-medium text-gray-900 dark:text-gray-100">
-                    {formatCurrency(item.price * item.quantity)}
-                  </span>
-                </div>
-              ))}
-            </div>
-            <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-600 flex justify-between text-sm font-bold">
-              <span className="text-gray-900 dark:text-gray-100">Total</span>
-              <span className="text-primary-600 dark:text-primary-400">{formatCurrency(order.totalAmount)}</span>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-2">
-            {order.status === 'pending' && (
-              <Button
-                size="sm"
-                className="flex-1"
-                onClick={() => onMarkReady(order.id)}
-              >
-                Mark Ready
-              </Button>
-            )}
-            {order.status === 'ready' && (
-              <Button
-                size="sm"
-                variant="secondary"
-                className="flex-1"
-                leftIcon={<CheckCircle className="w-4 h-4" />}
-                onClick={() => onMarkCompleted(order.id)}
-              >
-                Mark Completed
-              </Button>
-            )}
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-surface-100 truncate">
+              Order #{order.id?.slice(-6).toUpperCase()}
+            </p>
+            <p className="text-[11px] text-surface-500">{timeAgo()}</p>
           </div>
         </div>
-      </Card>
+        <Badge variant={config.color} size="sm" dot>
+          {config.label}
+        </Badge>
+      </div>
+
+      {/* Customer & Table Info */}
+      <div className="px-4 py-3 flex items-center gap-4 border-b border-surface-800/30">
+        {order.customerName && (
+          <div className="flex items-center gap-1.5 text-xs text-surface-400 min-w-0">
+            <User className="w-3.5 h-3.5 flex-shrink-0 text-surface-500" />
+            <span className="truncate">{order.customerName}</span>
+          </div>
+        )}
+        {order.tableNumber && (
+          <div className="flex items-center gap-1.5 text-xs text-surface-400">
+            <MapPin className="w-3.5 h-3.5 flex-shrink-0 text-surface-500" />
+            <span>Table {order.tableNumber}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Items */}
+      <div className="px-4 py-3">
+        <div className="space-y-1.5">
+          {order.items?.slice(0, 4).map((item, i) => (
+            <div key={i} className="flex items-center justify-between text-sm">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="w-5 h-5 rounded bg-surface-800/60 flex items-center justify-center text-[10px] font-bold text-surface-400 flex-shrink-0">
+                  {item.quantity}
+                </span>
+                <span className="text-surface-300 truncate">{item.name}</span>
+              </div>
+              <span className="text-surface-400 text-xs font-medium flex-shrink-0 ml-2">
+                {formatCurrency(item.price * item.quantity)}
+              </span>
+            </div>
+          ))}
+          {order.items?.length > 4 && (
+            <p className="text-xs text-surface-500 pt-1">
+              +{order.items.length - 4} more items
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div className="px-4 py-3 border-t border-surface-700/30 bg-surface-950/20 flex items-center justify-between">
+        <div>
+          <p className="text-xs text-surface-500">Total</p>
+          <p className="text-lg font-bold text-surface-100 font-display">
+            {formatCurrency(order.totalAmount)}
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          {order.status === 'pending' && (
+            <Button
+              variant="gradient"
+              size="sm"
+              onClick={() => onMarkReady(order.id)}
+            >
+              Mark Ready
+            </Button>
+          )}
+          {order.status === 'ready' && (
+            <Button
+              variant="success"
+              size="sm"
+              onClick={() => onMarkCompleted(order.id)}
+            >
+              Complete
+            </Button>
+          )}
+        </div>
+      </div>
     </motion.div>
   )
 }

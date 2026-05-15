@@ -5,13 +5,18 @@ const ThemeContext = createContext(null)
 export const ThemeProvider = ({ children }) => {
   const [isDark, setIsDark] = useState(() => {
     const saved = localStorage.getItem('theme')
-    return saved ? saved === 'dark' : false
+    if (saved) return saved === 'dark'
+    // Default to dark for premium feel
+    return true
   })
 
   useEffect(() => {
     const root = window.document.documentElement
     const body = window.document.body
     
+    // Smooth transition on theme toggle
+    root.style.colorScheme = isDark ? 'dark' : 'light'
+
     if (isDark) {
       root.classList.add('dark')
       body.classList.add('dark')

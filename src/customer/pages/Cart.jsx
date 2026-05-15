@@ -1,22 +1,19 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ShoppingBag, User, Phone, Trash2 } from 'lucide-react'
+import { ShoppingBag, User, Phone, Trash2, ChevronLeft, CreditCard, Banknote } from 'lucide-react'
 import { useCart } from '@shared/contexts/CartContext'
-import { Button } from '@shared/components/Button'
-import { Input } from '@shared/components/Input'
-import { Card } from '@shared/components/Card'
-import { ConfirmModal } from '@shared/components/Modal'
 import { formatCurrency } from '@shared/utils/formatters'
 import { isValidName, isValidPhone } from '@shared/utils/validators'
 import { ordersAPI } from '@shared/api/endpoints'
 import toast from 'react-hot-toast'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { registerPushSubscription } from '@shared/utils/pushNotifications'
+import { cn } from '@shared/utils/cn'
 
 export const Cart = () => {
   const { menuSlug, token } = useParams()
   const navigate = useNavigate()
-  const { items, getTotalAmount, clearCart, removeItem } = useCart()
+  const { items, getTotalAmount, clearCart, removeItem, getItemPrice } = useCart()
 
   const [customerName, setCustomerName] = useState('')
   const [customerPhone, setCustomerPhone] = useState('')
@@ -26,22 +23,14 @@ export const Cart = () => {
 
   const validateForm = () => {
     const newErrors = {}
-
-    if (!isValidName(customerName)) {
-      newErrors.name = 'Please enter a valid name (at least 2 characters)'
-    }
-
-    if (!isValidPhone(customerPhone)) {
-      newErrors.phone = 'Please enter a valid 10-digit phone number'
-    }
-
+    if (!isValidName(customerName)) newErrors.name = 'Please enter a valid name (at least 2 characters)'
+    if (!isValidPhone(customerPhone)) newErrors.phone = 'Please enter a valid 10-digit phone number'
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
   const handlePlaceOrder = async () => {
     if (!validateForm()) return
-
     setShowConfirmModal(true)
   }
 
@@ -55,7 +44,9 @@ export const Cart = () => {
         items: items.map((item) => ({
           itemId: item.id,
           name: item.name,
-          price: item.price,
+          variant: item.selectedVariant?.name || null,
+          addons: (item.selectedAddons || []).map(a => a.name),
+          price: getItemPrice(item),
           quantity: item.quantity,
         })),
         totalAmount: getTotalAmount(),
@@ -65,7 +56,6 @@ export const Cart = () => {
       const response = await ordersAPI.createOrder(orderData)
       try { await registerPushSubscription({ phone: customerPhone }) } catch {}
       clearCart()
-      // Navigate to success page with animation
       navigate(`/m/${menuSlug}/q/${token}/success/${response.data.orderId}`)
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to place order')
@@ -77,191 +67,218 @@ export const Cart = () => {
 
   if (items.length === 0) {
     return (
-      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-4">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="text-center"
-        >
-          <ShoppingBag className="w-24 h-24 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">Your cart is empty</h2>
-          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-6">Add some items to get started</p>
-          <Button onClick={() => navigate(-1)}>Browse Menu</Button>
+      <div className="min-h-screen bg-[#050816] flex items-center justify-center p-4">
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
+          <div className="w-24 h-24 mx-auto mb-5 rounded-2xl bg-white/5 flex items-center justify-center">
+            <ShoppingBag className="w-11 h-11 text-zinc-700" />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">Your cart is empty</h2>
+          <p className="text-sm text-zinc-500 mb-6">Add some delicious items to get started</p>
+          <button onClick={() => navigate(-1)}
+            className="px-6 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-pink-600 text-white font-semibold text-sm hover:scale-105 transition-all">
+            Browse Menu
+          </button>
         </motion.div>
       </div>
     )
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      {/* Header Section */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-8"
-      >
-        <h1 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent mb-2">
-          Checkout
-        </h1>
-        <p className="text-gray-600 dark:text-gray-400">Complete your order details</p>
-      </motion.div>
+    <div className="min-h-screen bg-[#050816]">
+      {/* Header */}
+      <div className="px-4 pt-4 pb-3">
+        <div className="flex items-center justify-between mb-1">
+          <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-zinc-400 hover:text-white transition-colors">
+            <ChevronLeft className="w-5 h-5" />
+            <span className="text-sm font-medium">Back</span>
+          </button>
+        </div>
+        <h1 className="text-2xl font-bold text-white mt-3">Checkout</h1>
+        <p className="text-sm text-zinc-500 mt-1">Complete your order details</p>
+      </div>
 
-      <div className="grid lg:grid-cols-2 gap-8">
-        {/* Left Column - Customer Details & Order Items */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.1 }}
-          className="space-y-6"
-        >
-          {/* Customer Details */}
-          <Card className="border-2 border-purple-100 dark:border-purple-900/30 bg-white dark:bg-gray-900 shadow-lg">
-            <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-6 rounded-t-xl">
-              <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                <User className="w-6 h-6" />
-                Your Details
-              </h2>
-            </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                <Input
-                  label="Full Name"
+      <div className="px-4 pb-8 space-y-4">
+        {/* ─── Customer Details ─── */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl bg-[#0D1324] border border-white/[0.06] overflow-hidden">
+          <div className="px-5 py-4 border-b border-white/[0.06]">
+            <h2 className="text-base font-bold text-white flex items-center gap-2">
+              <User className="w-4 h-4 text-violet-400" /> Your Details
+            </h2>
+          </div>
+          <div className="p-5 space-y-4">
+            {/* Name */}
+            <div>
+              <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">Full Name</label>
+              <div className="relative">
+                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
+                <input
+                  type="text"
                   placeholder="Enter your name"
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
-                  error={errors.name}
-                  leftIcon={<User className="w-5 h-5" />}
-                  required
+                  className={cn(
+                    'w-full pl-10 pr-4 py-3 rounded-xl bg-white/[0.03] border text-sm text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-violet-500/30 transition-all',
+                    errors.name ? 'border-red-500/50' : 'border-white/[0.06]'
+                  )}
                 />
-                <Input
-                  label="Phone Number"
+              </div>
+              {errors.name && <p className="text-xs text-red-400 mt-1">{errors.name}</p>}
+            </div>
+            {/* Phone */}
+            <div>
+              <label className="text-xs font-semibold text-zinc-400 mb-1.5 block">Phone Number</label>
+              <div className="relative">
+                <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600" />
+                <input
+                  type="tel"
                   placeholder="10-digit phone number"
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
-                  error={errors.phone}
-                  leftIcon={<Phone className="w-5 h-5" />}
-                  required
                   maxLength={10}
+                  className={cn(
+                    'w-full pl-10 pr-4 py-3 rounded-xl bg-white/[0.03] border text-sm text-white placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-violet-500/30 transition-all',
+                    errors.phone ? 'border-red-500/50' : 'border-white/[0.06]'
+                  )}
                 />
               </div>
+              {errors.phone && <p className="text-xs text-red-400 mt-1">{errors.phone}</p>}
             </div>
-          </Card>
-
-          {/* Order Items */}
-          <Card className="border-2 border-purple-100 dark:border-purple-900/30 bg-white dark:bg-gray-900 shadow-lg">
-            <div className="bg-gradient-to-r from-orange-500 to-pink-500 p-6 rounded-t-xl">
-              <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                <ShoppingBag className="w-6 h-6" />
-                Your Order ({items.length} {items.length === 1 ? 'item' : 'items'})
-              </h2>
-            </div>
-            <div className="p-6">
-              <div className="space-y-4">
-                {items.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-start gap-4 p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border-2 border-purple-100 dark:border-purple-900/30 hover:border-purple-300 dark:hover:border-purple-700 transition-all"
-                  >
-                    {item.image && (
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-20 h-20 object-cover rounded-xl shadow-md"
-                      />
-                    )}
-                    <div className="flex-1">
-                      <h3 className="text-base font-bold text-gray-900 dark:text-gray-100 mb-1">{item.name}</h3>
-                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 mb-2">
-                        <span className="font-semibold">{formatCurrency(item.price, item.currency)}</span>
-                        <span>×</span>
-                        <span className="font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">{item.quantity}</span>
-                      </div>
-                      <p className="text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                        {formatCurrency(item.price * item.quantity, item.currency)}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => removeItem(item.id)}
-                      className="p-2 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </Card>
+          </div>
         </motion.div>
 
-        {/* Right Column - Bill Summary */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          <Card className="sticky top-20 border-2 border-purple-100 dark:border-purple-900/30 bg-white dark:bg-gray-900 shadow-xl">
-            <div className="bg-gradient-to-r from-green-500 to-emerald-500 p-6 rounded-t-xl">
-              <h2 className="text-2xl font-bold text-white">
-                Bill Summary
-              </h2>
-            </div>
-            <div className="p-6">
-              <div className="space-y-4 mb-6">
-                <div className="flex justify-between items-center py-3 border-b border-gray-200 dark:border-gray-700">
-                  <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
-                  <span className="text-lg font-semibold text-gray-900 dark:text-white">{formatCurrency(getTotalAmount())}</span>
-                </div>
-                <div className="flex justify-between items-center py-3 border-b border-gray-200 dark:border-gray-700">
-                  <span className="text-gray-600 dark:text-gray-400">Taxes & Fees</span>
-                  <span className="text-lg font-semibold text-green-600 dark:text-green-400">Included</span>
-                </div>
-                <div className="pt-4 pb-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xl font-bold text-gray-900 dark:text-white">Total Amount</span>
-                    <span className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                      {formatCurrency(getTotalAmount())}
-                    </span>
+        {/* ─── Order Items ─── */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+          className="rounded-2xl bg-[#0D1324] border border-white/[0.06] overflow-hidden">
+          <div className="px-5 py-4 border-b border-white/[0.06]">
+            <h2 className="text-base font-bold text-white flex items-center gap-2">
+              <ShoppingBag className="w-4 h-4 text-pink-400" /> Your Order
+              <span className="text-xs font-normal text-zinc-500 ml-1">({items.length} {items.length === 1 ? 'item' : 'items'})</span>
+            </h2>
+          </div>
+          <div className="p-4 space-y-3">
+            {items.map((item) => {
+              const cartKey = item._cartKey || item.id
+              const itemPrice = getItemPrice(item)
+              return (
+                <div key={cartKey} className="flex items-start gap-3 p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                  {item.image && (
+                    <img src={item.image} alt={item.name} className="w-14 h-14 object-cover rounded-lg flex-shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="text-sm font-semibold text-white truncate">{item.name}</h3>
+                    {item.selectedVariant && (
+                      <p className="text-[11px] text-violet-400 font-medium mt-0.5">Variant: {item.selectedVariant.name}</p>
+                    )}
+                    {item.selectedAddons?.length > 0 && (
+                      <div className="mt-0.5">
+                        {item.selectedAddons.map(a => (
+                          <p key={a.name} className="text-[11px] text-pink-400 font-medium">+ {a.name}</p>
+                        ))}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <span className="text-xs text-zinc-500">{formatCurrency(itemPrice, item.currency)} × {item.quantity}</span>
+                    </div>
+                    <p className="text-sm font-bold text-white mt-1">{formatCurrency(itemPrice * item.quantity, item.currency)}</p>
                   </div>
+                  <button onClick={() => removeItem(cartKey)} className="text-zinc-600 hover:text-red-400 transition-colors mt-0.5">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
-              </div>
+              )
+            })}
+          </div>
+        </motion.div>
 
-              <div className="bg-gradient-to-r from-yellow-400 to-orange-400 rounded-xl p-5 mb-6 shadow-lg">
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl">💰</span>
-                  <div>
-                    <p className="text-white font-bold text-lg mb-1">Cash Payment</p>
-                    <p className="text-white/90 text-sm">Pay when your order is ready at the counter</p>
-                  </div>
-                </div>
-              </div>
-
-              <Button
-                size="lg"
-                className="w-full bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 hover:from-purple-600 hover:via-pink-600 hover:to-orange-600 text-white font-bold text-lg py-4 shadow-xl hover:shadow-2xl hover:scale-105 transition-all"
-                onClick={handlePlaceOrder}
-                loading={loading}
-              >
-                Place Order Now
-              </Button>
-              
-              <p className="text-center text-xs text-gray-500 dark:text-gray-400 mt-4">
-                By placing order, you agree to our terms & conditions
-              </p>
+        {/* ─── Bill Summary ─── */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+          className="rounded-2xl bg-[#0D1324] border border-white/[0.06] overflow-hidden">
+          <div className="px-5 py-4 border-b border-white/[0.06]">
+            <h2 className="text-base font-bold text-white">Bill Summary</h2>
+          </div>
+          <div className="p-5 space-y-3">
+            <div className="flex justify-between text-sm">
+              <span className="text-zinc-500">Subtotal</span>
+              <span className="text-zinc-300 font-medium">{formatCurrency(getTotalAmount())}</span>
             </div>
-          </Card>
+            <div className="flex justify-between text-sm">
+              <span className="text-zinc-500">Taxes & Fees</span>
+              <span className="text-emerald-400 font-medium">Included</span>
+            </div>
+            <div className="h-px bg-white/[0.06]" />
+            <div className="flex justify-between items-center">
+              <span className="text-lg font-bold text-white">Total</span>
+              <span className="text-2xl font-bold text-white">{formatCurrency(getTotalAmount())}</span>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* ─── Payment ─── */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
+          className="rounded-2xl bg-gradient-to-r from-violet-600/10 to-pink-600/10 border border-violet-500/15 p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-violet-500/15 flex items-center justify-center">
+              <Banknote className="w-5 h-5 text-violet-400" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-white">Cash Payment</p>
+              <p className="text-xs text-zinc-400">Pay when your order is ready at the counter</p>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* ─── Place Order Button ─── */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+          <button
+            onClick={handlePlaceOrder}
+            disabled={loading}
+            className={cn(
+              'w-full py-4 rounded-xl font-bold text-base transition-all flex items-center justify-center gap-2',
+              loading
+                ? 'bg-zinc-800 text-zinc-500 cursor-not-allowed'
+                : 'bg-gradient-to-r from-violet-600 to-pink-600 text-white hover:shadow-xl hover:shadow-violet-500/20 hover:scale-[1.01] active:scale-[0.99]'
+            )}
+          >
+            {loading ? (
+              <div className="w-5 h-5 border-2 border-zinc-600 border-t-zinc-400 rounded-full animate-spin" />
+            ) : (
+              <>
+                <ShoppingBag className="w-5 h-5" />
+                Place Order · {formatCurrency(getTotalAmount())}
+              </>
+            )}
+          </button>
+          <p className="text-center text-[10px] text-zinc-600 mt-3">By placing order, you agree to our terms & conditions</p>
         </motion.div>
       </div>
 
-      {/* Confirmation Modal */}
-      <ConfirmModal
-        isOpen={showConfirmModal}
-        onClose={() => setShowConfirmModal(false)}
-        onConfirm={confirmOrder}
-        title="Confirm Order"
-        message={`Place order for ${formatCurrency(getTotalAmount())}? You'll pay in cash when it's ready.`}
-        confirmText="Confirm Order"
-        loading={loading}
-      />
+      {/* ─── Confirmation Modal ─── */}
+      <AnimatePresence>
+        {showConfirmModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowConfirmModal(false)} />
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="relative bg-[#0D1324] rounded-2xl p-6 max-w-sm w-full border border-white/[0.06] shadow-2xl z-10">
+              <h3 className="text-lg font-bold text-white mb-2">Confirm Order</h3>
+              <p className="text-sm text-zinc-400 mb-6">
+                Place order for <span className="font-bold text-white">{formatCurrency(getTotalAmount())}</span>? You'll pay in cash when it's ready.
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setShowConfirmModal(false)}
+                  className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-zinc-300 font-semibold text-sm hover:bg-white/10 transition-all">
+                  Cancel
+                </button>
+                <button onClick={confirmOrder}
+                  disabled={loading}
+                  className="flex-1 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-pink-600 text-white font-bold text-sm hover:shadow-lg hover:shadow-violet-500/20 transition-all flex items-center justify-center gap-2">
+                  {loading ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'Confirm'}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
