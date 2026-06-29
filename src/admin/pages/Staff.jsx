@@ -3,7 +3,7 @@ import {
   Users, Mail, Phone, Shield, Briefcase, Plus, UserCheck, UserX,
   SlidersHorizontal, ArrowUpDown, Clock, Eye, EyeOff, Sparkles,
   LayoutDashboard, ShoppingCart, CreditCard, BookOpen, QrCode,
-  BarChart3, Package, Settings, CheckCheck, X, ChevronDown
+  BarChart3, Package, Settings, CheckCheck, X, ChevronDown, Activity
 } from 'lucide-react'
 import { Card } from '@shared/components/Card'
 import { Input } from '@shared/components/Input'
@@ -27,6 +27,7 @@ const ALL_PERMISSIONS = [
   { id: 'qr', label: 'QR Codes', icon: QrCode },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'inventory', label: 'Inventory', icon: Package },
+  { id: 'manager-control', label: 'Manager Control', icon: Activity },
 ]
 
 const ROLES = {

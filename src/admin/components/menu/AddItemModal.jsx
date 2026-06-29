@@ -1,16 +1,15 @@
 import { useState, useEffect, useMemo } from 'react'
 import {
-  X, Plus, Trash2, Image, Tag, Award, DollarSign, Layers, Clock, Settings2,
-  Flame, Leaf, ChevronRight, Eye, EyeOff, Package, Zap, Star, TrendingUp, ChefHat
+  Plus, Trash2, Image, Tag, DollarSign, Layers, Clock, Settings2,
+  ChevronRight, Zap, Star, TrendingUp, ChefHat, Leaf
 } from 'lucide-react'
 import { Modal } from '@shared/components/Modal'
 import { Input, TextArea } from '@shared/components/Input'
-import { Select } from '@shared/components/Select'
 import { Button } from '@shared/components/Button'
 import { Badge } from '@shared/components/Badge'
 import { cn } from '@shared/utils/cn'
 import { formatCurrency } from '@shared/utils/formatters'
-import { motion, AnimatePresence } from 'framer-motion'
+import toast from 'react-hot-toast'
 
 const TABS = [
   { id: 'basic', label: 'Basic Info', icon: Tag },
@@ -46,14 +45,30 @@ const SPICE_LEVELS = [
 ]
 
 const DEFAULT_FORM = {
-  name: '', description: '', price: '', category: '', image: '',
-  isVeg: true, spiceLevel: 'none', preparationTime: 15,
-  tags: [], badge: 'none',
+  name: '',
+  description: '',
+  sellingPrice: '',
+  category: '',
+  image: '',
+  isVeg: true,
+  spiceLevel: 'none',
+  preparationTime: 15,
+  tags: [],
+  badge: 'none',
   productType: 'simple',
-  comparePrice: '', offerPrice: '', taxPercent: '', costPrice: '',
-  variants: [], addons: [],
+  originalMarketPrice: '',
+  offerPrice: '',
+  costPrice: '',
+  useDefaultTax: true,
+  customTaxRate: '',
+  showAdvancedPricing: false,
+  showCustomTax: false,
+  variants: [],
+  addons: [],
   availability: { status: 'in-stock', timeSlots: ['all-day'] },
-  sku: '', calories: '', servingSize: '',
+  sku: '',
+  calories: '',
+  servingSize: '',
 }
 
 export const AddItemModal = ({ isOpen, onClose, onSave, editingItem, categories = [], loading = false }) => {
@@ -63,14 +78,18 @@ export const AddItemModal = ({ isOpen, onClose, onSave, editingItem, categories 
   useEffect(() => {
     if (editingItem) {
       const hasVariants = (editingItem.variants || []).length > 0
+      const hasCustomTax = editingItem.useDefaultTax === false && editingItem.customTaxRate != null
       setForm({
         ...DEFAULT_FORM,
         ...editingItem,
-        price: editingItem.price?.toString() || '',
-        comparePrice: editingItem.comparePrice?.toString() || '',
+        sellingPrice: (editingItem.sellingPrice || editingItem.price)?.toString() || '',
+        originalMarketPrice: (editingItem.originalMarketPrice || editingItem.comparePrice)?.toString() || '',
         offerPrice: editingItem.offerPrice?.toString() || '',
-        taxPercent: editingItem.taxPercent?.toString() || '',
         costPrice: editingItem.costPrice?.toString() || '',
+        useDefaultTax: editingItem.useDefaultTax !== false,
+        customTaxRate: editingItem.customTaxRate?.toString() || '',
+        showCustomTax: hasCustomTax,
+        showAdvancedPricing: !!(editingItem.originalMarketPrice || editingItem.comparePrice || editingItem.costPrice),
         calories: editingItem.calories?.toString() || '',
         preparationTime: editingItem.preparationTime || 15,
         tags: editingItem.tags || [],
@@ -103,60 +122,132 @@ export const AddItemModal = ({ isOpen, onClose, onSave, editingItem, categories 
     })
   }
 
-  // Variants
   const addVariant = () => setForm(prev => ({
-    ...prev, variants: [...prev.variants, { name: '', price: '', isDefault: prev.variants.length === 0, isAvailable: true }]
+    ...prev,
+    variants: [...prev.variants, { name: '', price: '', offerPrice: '', isDefault: prev.variants.length === 0, isAvailable: true }]
   }))
   const updateVariant = (idx, field, value) => setForm(prev => {
-    const v = [...prev.variants]; v[idx] = { ...v[idx], [field]: value }; return { ...prev, variants: v }
+    const v = [...prev.variants]
+    v[idx] = { ...v[idx], [field]: value }
+    return { ...prev, variants: v }
   })
   const removeVariant = (idx) => setForm(prev => ({ ...prev, variants: prev.variants.filter((_, i) => i !== idx) }))
 
-  // Addons
   const addAddon = () => setForm(prev => ({
-    ...prev, addons: [...prev.addons, { name: '', price: '', isRequired: false, maxQuantity: 1 }]
+    ...prev,
+    addons: [...prev.addons, { name: '', price: '', isRequired: false, maxQuantity: 1 }]
   }))
   const updateAddon = (idx, field, value) => setForm(prev => {
-    const a = [...prev.addons]; a[idx] = { ...a[idx], [field]: value }; return { ...prev, addons: a }
+    const a = [...prev.addons]
+    a[idx] = { ...a[idx], [field]: value }
+    return { ...prev, addons: a }
   })
   const removeAddon = (idx) => setForm(prev => ({ ...prev, addons: prev.addons.filter((_, i) => i !== idx) }))
 
-  // Profit preview
   const profitPreview = useMemo(() => {
-    const price = parseFloat(form.offerPrice || form.price) || 0
+    const price = parseFloat(form.offerPrice || form.sellingPrice) || 0
     const cost = parseFloat(form.costPrice) || 0
-    const tax = parseFloat(form.taxPercent) || 0
+    const tax = form.useDefaultTax ? 5 : (parseFloat(form.customTaxRate) || 0)
     const taxAmount = price * (tax / 100)
     const profit = price - cost - taxAmount
     return { price, cost, taxAmount, profit }
-  }, [form.price, form.offerPrice, form.costPrice, form.taxPercent])
+  }, [form.sellingPrice, form.offerPrice, form.costPrice, form.customTaxRate, form.useDefaultTax])
 
   const handleSave = () => {
+    const normalizedVariants = form.variants
+      .filter(v => v.name && v.name.trim())
+      .map(v => ({
+        ...v,
+        name: v.name.trim(),
+        price: parseFloat(v.price) || 0,
+        offerPrice: parseFloat(v.offerPrice) || 0,
+      }))
+
+    const normalizedAddons = form.addons
+      .filter(a => a.name && a.name.trim())
+      .map(a => ({
+        ...a,
+        name: a.name.trim(),
+        price: parseFloat(a.price) || 0,
+      }))
+
+    const isVariable = form.productType === 'variable'
+    const sellingPrice = parseFloat(form.sellingPrice) || 0
+    const offerPrice = parseFloat(form.offerPrice) || 0
+    const originalMarketPrice = parseFloat(form.originalMarketPrice) || 0
+    const costPrice = parseFloat(form.costPrice) || 0
+    const customTaxRate = form.useDefaultTax ? null : (parseFloat(form.customTaxRate) || null)
+    const taxPercent = form.useDefaultTax ? 0 : (parseFloat(form.customTaxRate) || 0)
+
+    if (isVariable) {
+      if (normalizedVariants.length === 0) {
+        toast.error('Variant products must have at least one variant.')
+        return
+      }
+      const invalidVariant = normalizedVariants.find(v => !(v.price > 0))
+      if (invalidVariant) {
+        toast.error(`Variant "${invalidVariant.name}" must have a price greater than 0.`)
+        return
+      }
+      const badOffer = normalizedVariants.find(v => v.offerPrice > 0 && v.offerPrice >= v.price)
+      if (badOffer) {
+        toast.error(`Variant "${badOffer.name}" offer price must be less than its price.`)
+        return
+      }
+    } else {
+      if (!(sellingPrice > 0)) {
+        toast.error('Selling price must be greater than 0.')
+        return
+      }
+      if (offerPrice > 0 && offerPrice >= sellingPrice) {
+        toast.error('Offer price must be less than selling price.')
+        return
+      }
+    }
+
     const payload = {
       ...form,
-      price: parseFloat(form.price) || 0,
-      comparePrice: parseFloat(form.comparePrice) || 0,
-      offerPrice: parseFloat(form.offerPrice) || 0,
-      taxPercent: parseFloat(form.taxPercent) || 0,
-      costPrice: parseFloat(form.costPrice) || 0,
+      productType: isVariable ? 'variable' : 'simple',
+      sellingPrice: isVariable ? 0 : sellingPrice,
+      price: isVariable ? 0 : sellingPrice,
+      originalMarketPrice: isVariable ? 0 : originalMarketPrice,
+      comparePrice: isVariable ? 0 : originalMarketPrice,
+      offerPrice: isVariable ? 0 : offerPrice,
+      costPrice,
+      useDefaultTax: isVariable ? true : form.useDefaultTax,
+      customTaxRate: isVariable ? null : customTaxRate,
+      taxPercent: isVariable ? 0 : taxPercent,
       calories: parseInt(form.calories) || 0,
       preparationTime: parseInt(form.preparationTime) || 15,
-      variants: form.variants.filter(v => v.name.trim()).map(v => ({ ...v, price: parseFloat(v.price) || 0 })),
-      addons: form.addons.filter(a => a.name.trim()).map(a => ({ ...a, price: parseFloat(a.price) || 0 })),
+      variants: isVariable ? normalizedVariants : [],
+      addons: normalizedAddons,
+      availability: form.availability,
     }
+
+    delete payload.showAdvancedPricing
+    delete payload.showCustomTax
+
     if (editingItem?.id) payload.id = editingItem.id
     onSave(payload)
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={editingItem ? 'Edit Item' : 'Add New Item'} subtitle="Configure all details for this menu item" size="xl" footer={
-      <div className="flex items-center gap-3 w-full justify-end">
-        <Button variant="ghost" onClick={onClose}>Cancel</Button>
-        <Button variant="gradient" onClick={handleSave} loading={loading}>{editingItem ? 'Update Item' : 'Save Item'}</Button>
-      </div>
-    }>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={editingItem ? 'Edit Item' : 'Add New Item'}
+      subtitle="Configure all details for this menu item"
+      size="xl"
+      footer={(
+        <div className="flex items-center gap-3 w-full justify-end">
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button variant="gradient" onClick={handleSave} loading={loading}>
+            {editingItem ? 'Update Item' : 'Save Item'}
+          </Button>
+        </div>
+      )}
+    >
       <div className="flex flex-col -mx-6 -mt-6">
-        {/* Tab Navigation */}
         <div className="flex gap-1 overflow-x-auto px-6 py-3 border-b border-surface-700/30 bg-surface-950/30">
           {TABS.map(tab => (
             <button
@@ -177,9 +268,7 @@ export const AddItemModal = ({ isOpen, onClose, onSave, editingItem, categories 
           ))}
         </div>
 
-        {/* Tab Content */}
         <div className="px-6 py-5 max-h-[55vh] overflow-y-auto scrollbar-thin">
-          {/* ── Basic Info ── */}
           {activeTab === 'basic' && (
             <div className="space-y-4">
               <Input label="Item Name" value={form.name} onChange={(e) => updateForm('name', e.target.value)} placeholder="e.g. Margherita Pizza" required />
@@ -200,47 +289,48 @@ export const AddItemModal = ({ isOpen, onClose, onSave, editingItem, categories 
                 </div>
                 <Input label="Image URL" value={form.image} onChange={(e) => updateForm('image', e.target.value)} placeholder="https://..." leftIcon={<Image className="w-4 h-4" />} />
               </div>
-              {/* Tags */}
               <div>
                 <label className="text-xs font-semibold text-surface-400 mb-2 block">Tags</label>
                 <div className="flex flex-wrap gap-2">
                   {TAG_OPTIONS.map(tag => (
-                    <button key={tag.id} type="button" onClick={() => toggleTag(tag.id)}
-                      className={cn('flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-semibold transition-all',
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => toggleTag(tag.id)}
+                      className={cn(
+                        'flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-semibold transition-all',
                         form.tags.includes(tag.id)
                           ? 'bg-primary-500/10 text-primary-300 border-primary-500/30 ring-1 ring-primary-500/10'
                           : 'bg-surface-900/30 text-surface-400 border-surface-700/50 hover:bg-surface-800/40'
-                      )}>
+                      )}
+                    >
                       <span className={cn('w-2.5 h-2.5 rounded-full', tag.color)} />
                       {tag.label}
                     </button>
                   ))}
                 </div>
               </div>
-              {/* Badge */}
               <div>
                 <label className="text-xs font-semibold text-surface-400 mb-2 block">Badge</label>
                 <div className="flex flex-wrap gap-2">
                   {BADGE_OPTIONS.map(b => (
-                    <button key={b.id} type="button" onClick={() => updateForm('badge', b.id)}
-                      className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition-all',
+                    <button
+                      key={b.id}
+                      type="button"
+                      onClick={() => updateForm('badge', b.id)}
+                      className={cn(
+                        'flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition-all',
                         form.badge === b.id
                           ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
                           : 'bg-surface-900/30 text-surface-400 border-surface-700/50 hover:bg-surface-800/40'
-                      )}>
+                      )}
+                    >
                       {b.icon && <b.icon className="w-3.5 h-3.5" />}
                       {b.label}
                     </button>
                   ))}
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* ── Pricing ── */}
-          {activeTab === 'pricing' && (
-            <div className="space-y-4">
-              {/* Product Type Selector */}
               <div>
                 <label className="text-xs font-semibold text-surface-400 mb-2 block">Product Type</label>
                 <div className="flex gap-2">
@@ -248,12 +338,17 @@ export const AddItemModal = ({ isOpen, onClose, onSave, editingItem, categories 
                     { id: 'simple', label: 'Simple Product' },
                     { id: 'variable', label: 'Product With Variants' },
                   ].map(t => (
-                    <button key={t.id} type="button" onClick={() => updateForm('productType', t.id)}
-                      className={cn('flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-semibold transition-all',
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => updateForm('productType', t.id)}
+                      className={cn(
+                        'flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-semibold transition-all',
                         form.productType === t.id
                           ? 'bg-primary-500/10 text-primary-300 border-primary-500/30 ring-1 ring-primary-500/10'
                           : 'bg-surface-900/30 text-surface-400 border-surface-700/50 hover:bg-surface-800/40'
-                      )}>
+                      )}
+                    >
                       <span className={cn('w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center',
                         form.productType === t.id ? 'border-primary-400' : 'border-surface-600'
                       )}>
@@ -264,70 +359,144 @@ export const AddItemModal = ({ isOpen, onClose, onSave, editingItem, categories 
                   ))}
                 </div>
               </div>
+            </div>
+          )}
 
+          {activeTab === 'pricing' && (
+            <div className="space-y-4">
               {form.productType === 'simple' ? (
                 <>
                   <div className="grid grid-cols-2 gap-4">
-                    <Input label="Base Price *" type="number" value={form.price} onChange={(e) => updateForm('price', e.target.value)} placeholder="0.00" leftIcon={<DollarSign className="w-4 h-4" />} required />
-                    <Input label="Compare Price (strikethrough)" type="number" value={form.comparePrice} onChange={(e) => updateForm('comparePrice', e.target.value)} placeholder="0.00" />
+                    <Input
+                      label="Selling Price *"
+                      type="number"
+                      value={form.sellingPrice}
+                      onChange={(e) => updateForm('sellingPrice', e.target.value)}
+                      placeholder="0.00"
+                      leftIcon={<DollarSign className="w-4 h-4" />}
+                      required
+                      helperText="Final amount the customer pays for this item."
+                    />
+                    <Input
+                      label="Offer Price (Optional)"
+                      type="number"
+                      value={form.offerPrice}
+                      onChange={(e) => updateForm('offerPrice', e.target.value)}
+                      placeholder="0.00"
+                      helperText="Use this only when you want to show a discounted customer-facing price."
+                    />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <Input label="Offer / Sale Price" type="number" value={form.offerPrice} onChange={(e) => updateForm('offerPrice', e.target.value)} placeholder="0.00" />
-                    <Input label="Tax %" type="number" value={form.taxPercent} onChange={(e) => updateForm('taxPercent', e.target.value)} placeholder="0" />
-                  </div>
-                  <Input label="Cost Price (internal)" type="number" value={form.costPrice} onChange={(e) => updateForm('costPrice', e.target.value)} placeholder="0.00" helperText="For profit tracking only. Not shown to customers." />
 
-                  {/* Profit Preview */}
+                  <div className="rounded-xl bg-surface-800/30 border border-surface-700/40 p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-xs font-semibold text-surface-300">Using Restaurant Default Tax</p>
+                        <p className="text-[10px] text-surface-500 mt-0.5">Current Tax: 5% - Configured in Settings</p>
+                        <p className="text-[10px] text-surface-500 mt-1">Keep this on to use the restaurant's saved tax rate.</p>
+                      </div>
+                      {!form.showCustomTax && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            updateForm('showCustomTax', true)
+                            updateForm('useDefaultTax', false)
+                          }}
+                          className="text-[10px] font-semibold text-primary-400 hover:text-primary-300 px-2.5 py-1 rounded-lg bg-primary-500/10 border border-primary-500/20"
+                        >
+                          Customize Tax
+                        </button>
+                      )}
+                    </div>
+                    {form.showCustomTax && (
+                      <div className="mt-3 pt-3 border-t border-surface-700/30">
+                        <Input
+                          label="Custom Tax %"
+                          type="number"
+                          value={form.customTaxRate}
+                          onChange={(e) => updateForm('customTaxRate', e.target.value)}
+                          placeholder="0"
+                          helperText="Only use this when the item needs a different tax rate."
+                        />
+                        <p className="text-[10px] text-surface-500 mt-1">Restaurant Default = 5%. Bottled Drinks = 18%.</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            updateForm('showCustomTax', false)
+                            updateForm('useDefaultTax', true)
+                            updateForm('customTaxRate', '')
+                          }}
+                          className="text-[10px] text-surface-500 hover:text-surface-300 mt-1.5"
+                        >
+                          &larr; Use restaurant default
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => updateForm('showAdvancedPricing', !form.showAdvancedPricing)}
+                      className="flex items-center gap-2 text-xs font-semibold text-surface-400 hover:text-surface-300 transition-colors"
+                    >
+                      <ChevronRight className={cn('w-3.5 h-3.5 transition-transform', form.showAdvancedPricing && 'rotate-90')} />
+                      Advanced Pricing
+                    </button>
+                    {form.showAdvancedPricing && (
+                      <div className="mt-3 space-y-3 pl-5 border-l border-surface-700/30">
+                        <Input
+                          label="Original Market Price"
+                          type="number"
+                          value={form.originalMarketPrice}
+                          onChange={(e) => updateForm('originalMarketPrice', e.target.value)}
+                          placeholder="0.00"
+                          helperText="Optional compare-at price shown with a strike-through."
+                        />
+                        <Input
+                          label="Cost Price (internal)"
+                          type="number"
+                          value={form.costPrice}
+                          onChange={(e) => updateForm('costPrice', e.target.value)}
+                          placeholder="0.00"
+                          helperText="Internal-only cost for margin tracking."
+                        />
+                      </div>
+                    )}
+                  </div>
+
                   <div className="rounded-xl bg-surface-800/30 border border-surface-700/40 p-4">
                     <p className="text-xs font-semibold text-surface-400 uppercase tracking-wider mb-3">Profit Preview</p>
                     <div className="grid grid-cols-4 gap-3 text-center">
-                      <div>
-                        <p className="text-lg font-bold text-surface-100">{formatCurrency(profitPreview.price)}</p>
-                        <p className="text-[10px] text-surface-500">Sell Price</p>
-                      </div>
-                      <div>
-                        <p className="text-lg font-bold text-surface-400">{formatCurrency(profitPreview.cost)}</p>
-                        <p className="text-[10px] text-surface-500">Cost</p>
-                      </div>
-                      <div>
-                        <p className="text-lg font-bold text-amber-400">{formatCurrency(profitPreview.taxAmount)}</p>
-                        <p className="text-[10px] text-surface-500">Tax</p>
-                      </div>
-                      <div>
-                        <p className={cn('text-lg font-bold', profitPreview.profit >= 0 ? 'text-emerald-400' : 'text-red-400')}>{formatCurrency(profitPreview.profit)}</p>
-                        <p className="text-[10px] text-surface-500">Profit</p>
-                      </div>
+                      <div><p className="text-lg font-bold text-surface-100">{formatCurrency(profitPreview.price)}</p><p className="text-[10px] text-surface-500">Sell Price</p></div>
+                      <div><p className="text-lg font-bold text-surface-400">{formatCurrency(profitPreview.cost)}</p><p className="text-[10px] text-surface-500">Cost</p></div>
+                      <div><p className="text-lg font-bold text-amber-400">{formatCurrency(profitPreview.taxAmount)}</p><p className="text-[10px] text-surface-500">Tax</p></div>
+                      <div><p className={cn('text-lg font-bold', profitPreview.profit >= 0 ? 'text-emerald-400' : 'text-red-400')}>{formatCurrency(profitPreview.profit)}</p><p className="text-[10px] text-surface-500">Profit</p></div>
                     </div>
                   </div>
                 </>
               ) : (
-                <>
-                  {/* Variable product — pricing comes from variants */}
-                  <div className="rounded-xl bg-primary-500/5 border border-primary-500/20 p-4">
-                    <div className="flex items-start gap-3">
-                      <Layers className="w-5 h-5 text-primary-400 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <p className="text-sm font-semibold text-primary-300 mb-1">Pricing is managed through variants</p>
-                        <p className="text-xs text-surface-400">Base, offer, and compare prices are not needed. Set individual prices for each variant in the Variants tab.</p>
-                      </div>
+                <div className="rounded-xl bg-primary-500/5 border border-primary-500/20 p-4">
+                  <div className="flex items-start gap-3">
+                    <Layers className="w-5 h-5 text-primary-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-primary-300 mb-1">Pricing is managed through Variants</p>
+                      <p className="text-xs text-surface-400">Configure prices in the Variants tab.</p>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <Input label="Tax %" type="number" value={form.taxPercent} onChange={(e) => updateForm('taxPercent', e.target.value)} placeholder="0" />
-                    <Input label="Cost Price (internal)" type="number" value={form.costPrice} onChange={(e) => updateForm('costPrice', e.target.value)} placeholder="0.00" helperText="For profit tracking only." />
-                  </div>
-                </>
+                </div>
               )}
             </div>
           )}
 
-          {/* ── Variants ── */}
           {activeTab === 'variants' && (
             <div className="space-y-4">
+              <div className="rounded-xl bg-primary-500/5 border border-primary-500/20 p-4 mb-4">
+                <p className="text-sm font-semibold text-primary-300 mb-1">Product Variants</p>
+                <p className="text-xs text-surface-400">Add different sizes, flavors, or portions with their own prices. e.g. Butterscotch Gola - Stick Rs 70, Mava Malai Rs 128. Customers choose one variant before adding to cart.</p>
+              </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-surface-200">Product Variants</p>
-                  <p className="text-xs text-surface-500 mt-0.5">Add different sizes, flavors, or portions with their own prices.</p>
+                  <p className="text-sm font-semibold text-surface-200">Variants ({form.variants.length})</p>
                 </div>
                 <Button size="sm" variant="outline" leftIcon={<Plus className="w-3.5 h-3.5" />} onClick={addVariant}>Add Variant</Button>
               </div>
@@ -340,19 +509,22 @@ export const AddItemModal = ({ isOpen, onClose, onSave, editingItem, categories 
                 <div className="space-y-3">
                   {form.variants.map((v, i) => (
                     <div key={i} className="grid grid-cols-12 gap-2 items-end p-3 rounded-xl bg-surface-900/30 border border-surface-700/40">
-                      <div className="col-span-5">
+                      <div className="col-span-4">
                         <Input label={i === 0 ? 'Name' : ''} value={v.name} onChange={(e) => updateVariant(i, 'name', e.target.value)} placeholder="e.g. Large" />
                       </div>
                       <div className="col-span-3">
-                        <Input label={i === 0 ? 'Price' : ''} type="number" value={v.price} onChange={(e) => updateVariant(i, 'price', e.target.value)} placeholder="0" />
+                        <Input label={i === 0 ? 'Price *' : ''} type="number" value={v.price} onChange={(e) => updateVariant(i, 'price', e.target.value)} placeholder="0.00" />
                       </div>
-                      <div className="col-span-2 flex items-center justify-center gap-1 pb-1">
-                        <label className="flex items-center gap-1 text-[10px] text-surface-400 cursor-pointer">
+                      <div className="col-span-3">
+                        <Input label={i === 0 ? 'Offer Price' : ''} type="number" value={v.offerPrice} onChange={(e) => updateVariant(i, 'offerPrice', e.target.value)} placeholder="0.00" />
+                      </div>
+                      <div className="col-span-1 flex items-center justify-center pb-2">
+                        <label className="flex items-center gap-1 text-[10px] text-surface-400 cursor-pointer" title="Default variant selected automatically">
                           <input type="checkbox" checked={v.isDefault} onChange={(e) => updateVariant(i, 'isDefault', e.target.checked)} className="w-3.5 h-3.5 rounded text-primary-500" />
-                          Default
+                          Def.
                         </label>
                       </div>
-                      <div className="col-span-2 flex justify-end pb-1">
+                      <div className="col-span-1 flex justify-end pb-1">
                         <button onClick={() => removeVariant(i)} className="p-1.5 rounded-lg text-surface-500 hover:text-red-400 hover:bg-red-500/10 transition-colors">
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -364,13 +536,15 @@ export const AddItemModal = ({ isOpen, onClose, onSave, editingItem, categories 
             </div>
           )}
 
-          {/* ── Add-ons ── */}
           {activeTab === 'addons' && (
             <div className="space-y-4">
+              <div className="rounded-xl bg-violet-500/5 border border-violet-500/20 p-4 mb-4">
+                <p className="text-sm font-semibold text-violet-300 mb-1">Add-ons & Extras</p>
+                <p className="text-xs text-surface-400">Optional extras customers can add to this item. e.g. Extra Cheese +Rs 25, Extra Malai +Rs 30, Extra Dry Fruit +Rs 50. Customers can choose multiple add-ons.</p>
+              </div>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-semibold text-surface-200">Add-ons & Extras</p>
-                  <p className="text-xs text-surface-500 mt-0.5">Optional extras customers can add to this item.</p>
+                  <p className="text-sm font-semibold text-surface-200">Extras ({form.addons.length})</p>
                 </div>
                 <Button size="sm" variant="outline" leftIcon={<Plus className="w-3.5 h-3.5" />} onClick={addAddon}>Add Extra</Button>
               </div>
@@ -387,11 +561,11 @@ export const AddItemModal = ({ isOpen, onClose, onSave, editingItem, categories 
                         <Input label={i === 0 ? 'Name' : ''} value={a.name} onChange={(e) => updateAddon(i, 'name', e.target.value)} placeholder="e.g. Extra Cheese" />
                       </div>
                       <div className="col-span-3">
-                        <Input label={i === 0 ? 'Price' : ''} type="number" value={a.price} onChange={(e) => updateAddon(i, 'price', e.target.value)} placeholder="+0" />
+                        <Input label={i === 0 ? 'Price' : ''} type="number" value={a.price} onChange={(e) => updateAddon(i, 'price', e.target.value)} placeholder="+0.00" />
                       </div>
                       <div className="col-span-2 flex items-center justify-center gap-1 pb-1">
                         <label className="flex items-center gap-1 text-[10px] text-surface-400 cursor-pointer">
-                          <input type="checkbox" checked={a.isRequired} onChange={(e) => updateAddon(i, 'isRequired', e.target.checked)} className="w-3.5 h-3.5 rounded text-primary-500" />
+                          <input type="checkbox" checked={a.isRequired} onChange={(e) => updateAddon(i, 'isRequired', e.target.checked)} className="w-3.5 h-3.5 rounded text-violet-500" />
                           Required
                         </label>
                       </div>
@@ -407,7 +581,6 @@ export const AddItemModal = ({ isOpen, onClose, onSave, editingItem, categories 
             </div>
           )}
 
-          {/* ── Availability ── */}
           {activeTab === 'availability' && (
             <div className="space-y-5">
               <div>
@@ -419,12 +592,17 @@ export const AddItemModal = ({ isOpen, onClose, onSave, editingItem, categories 
                     { id: 'hidden', label: 'Hidden', color: 'surface' },
                     { id: 'seasonal', label: 'Seasonal', color: 'amber' },
                   ].map(s => (
-                    <button key={s.id} type="button" onClick={() => updateForm('availability', { ...form.availability, status: s.id })}
-                      className={cn('px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all',
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => updateForm('availability', { ...form.availability, status: s.id })}
+                      className={cn(
+                        'px-3 py-2.5 rounded-xl border text-xs font-semibold transition-all',
                         form.availability.status === s.id
                           ? `bg-${s.color}-500/10 text-${s.color}-400 border-${s.color}-500/30`
                           : 'bg-surface-900/30 text-surface-400 border-surface-700/50 hover:bg-surface-800/40'
-                      )}>
+                      )}
+                    >
                       {s.label}
                     </button>
                   ))}
@@ -434,12 +612,17 @@ export const AddItemModal = ({ isOpen, onClose, onSave, editingItem, categories 
                 <label className="text-xs font-semibold text-surface-400 mb-2 block">Available Time Slots</label>
                 <div className="flex flex-wrap gap-2">
                   {['breakfast', 'lunch', 'dinner', 'all-day'].map(slot => (
-                    <button key={slot} type="button" onClick={() => toggleTimeSlot(slot)}
-                      className={cn('px-3 py-2 rounded-xl border text-xs font-semibold transition-all capitalize',
+                    <button
+                      key={slot}
+                      type="button"
+                      onClick={() => toggleTimeSlot(slot)}
+                      className={cn(
+                        'px-3 py-2 rounded-xl border text-xs font-semibold transition-all capitalize',
                         (form.availability.timeSlots || []).includes(slot)
                           ? 'bg-primary-500/10 text-primary-300 border-primary-500/30'
                           : 'bg-surface-900/30 text-surface-400 border-surface-700/50 hover:bg-surface-800/40'
-                      )}>
+                      )}
+                    >
                       {slot.replace('-', ' ')}
                     </button>
                   ))}
@@ -448,7 +631,6 @@ export const AddItemModal = ({ isOpen, onClose, onSave, editingItem, categories 
             </div>
           )}
 
-          {/* ── Advanced ── */}
           {activeTab === 'advanced' && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -463,19 +645,29 @@ export const AddItemModal = ({ isOpen, onClose, onSave, editingItem, categories 
                 <label className="text-xs font-semibold text-surface-400 mb-2 block">Spice Level</label>
                 <div className="flex flex-wrap gap-2">
                   {SPICE_LEVELS.map(sp => (
-                    <button key={sp.id} type="button" onClick={() => updateForm('spiceLevel', sp.id)}
-                      className={cn('flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition-all',
+                    <button
+                      key={sp.id}
+                      type="button"
+                      onClick={() => updateForm('spiceLevel', sp.id)}
+                      className={cn(
+                        'flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold transition-all',
                         form.spiceLevel === sp.id
                           ? 'bg-red-500/10 text-red-300 border-red-500/30'
                           : 'bg-surface-900/30 text-surface-400 border-surface-700/50 hover:bg-surface-800/40'
-                      )}>
+                      )}
+                    >
                       <span>{sp.emoji}</span> {sp.label}
                     </button>
                   ))}
                 </div>
               </div>
               <label className="flex items-center gap-3 p-3 rounded-xl bg-surface-900/30 border border-surface-700/40 cursor-pointer">
-                <input type="checkbox" checked={form.isVeg} onChange={(e) => updateForm('isVeg', e.target.checked)} className="w-4 h-4 rounded text-emerald-500 focus:ring-emerald-500/20" />
+                <input
+                  type="checkbox"
+                  checked={form.isVeg}
+                  onChange={(e) => updateForm('isVeg', e.target.checked)}
+                  className="w-4 h-4 rounded text-emerald-500 focus:ring-emerald-500/20"
+                />
                 <div>
                   <p className="text-sm font-medium text-surface-200 flex items-center gap-2"><Leaf className="w-4 h-4 text-emerald-500" /> Vegetarian</p>
                   <p className="text-[11px] text-surface-500">Mark this item as vegetarian</p>

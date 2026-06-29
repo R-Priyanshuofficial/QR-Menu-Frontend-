@@ -6,11 +6,18 @@ const buildBaseUrl = () => {
   const { protocol, hostname } = window.location
   const isLocalHost = hostname === 'localhost' || hostname === '127.0.0.1'
 
-  // If env not set, or env points to localhost but app is opened from a LAN IP, use current host
+  // When running the app locally, always prefer the local backend so dev changes stay in sync.
+  if (isLocalHost) {
+    const hostBase = `${protocol}//${hostname}:5000`
+    return `${hostBase}/api`
+  }
+
+  // If env is missing or points to localhost while app is opened from a LAN IP, use current host
   if (!envUrl || (!isLocalHost && envUrl.includes('localhost'))) {
     const hostBase = `${protocol}//${hostname}:5000`
     return `${hostBase}/api`
   }
+
   return envUrl
 }
 

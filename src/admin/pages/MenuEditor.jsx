@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Plus, Edit, Trash2, Upload, FileImage, FileText, X, Camera, Sparkles, Search, ChevronDown, ChevronRight, Grid3X3, List, Star, TrendingUp, Zap, ChefHat, Layers, Package, DollarSign, Flame, Leaf } from 'lucide-react'
 import { Button } from '@shared/components/Button'
 import { Input, TextArea } from '@shared/components/Input'
@@ -11,6 +12,8 @@ import { Badge } from '@shared/components/Badge'
 import { Select } from '@shared/components/Select'
 import { SearchInput } from '@shared/components/SearchInput'
 import { formatCurrency } from '@shared/utils/formatters'
+import { getDisplayPriceInfo } from '@shared/utils/priceEngine'
+import { getComboPresentation, getComboTagList, isComboItem } from '@shared/utils/comboPricing'
 import { menuAPI } from '@shared/api/endpoints'
 import { AddItemModal } from '../components/menu/AddItemModal'
 import toast from 'react-hot-toast'
@@ -35,6 +38,7 @@ const MiniStat = ({ icon: Icon, label, value, color = 'surface' }) => {
 }
 
 export const MenuEditor = () => {
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(true)
   const [items, setItems] = useState([])
   const [showModal, setShowModal] = useState(false)
@@ -51,6 +55,7 @@ export const MenuEditor = () => {
   const [savingItem, setSavingItem] = useState(false)
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
+  const [comboFilter, setComboFilter] = useState('all')
   const [sortBy, setSortBy] = useState('category')
   const [viewMode, setViewMode] = useState('grid')
   const [collapsedCats, setCollapsedCats] = useState({})
@@ -65,10 +70,10 @@ export const MenuEditor = () => {
     finally { setLoading(false) }
   }
 
-  const categories = useMemo(() => [...new Set(items.map(i => i.category))].sort(), [items])
+  const categories = useMemo(() => [...new Set(items.filter(item => !isComboItem(item)).map(i => i.category))].sort(), [items])
 
   const filteredItems = useMemo(() => {
-    let f = items
+    let f = items.filter(item => !isComboItem(item))
     if (search.trim()) { const q = search.toLowerCase(); f = f.filter(i => i.name.toLowerCase().includes(q) || i.description?.toLowerCase().includes(q) || i.category?.toLowerCase().includes(q)) }
     if (categoryFilter !== 'all') f = f.filter(i => i.category === categoryFilter)
     if (sortBy === 'name') f = [...f].sort((a, b) => a.name.localeCompare(b.name))
@@ -77,6 +82,14 @@ export const MenuEditor = () => {
     return f
   }, [items, search, categoryFilter, sortBy])
 
+  const filteredCombos = useMemo(() => {
+    let f = items.filter(item => isComboItem(item))
+    if (search.trim()) { const q = search.toLowerCase(); f = f.filter(i => i.name.toLowerCase().includes(q) || i.description?.toLowerCase().includes(q)) }
+    if (comboFilter === 'fixed') f = f.filter(i => i.comboType !== 'custom')
+    if (comboFilter === 'custom') f = f.filter(i => i.comboType === 'custom')
+    return f
+  }, [items, search, comboFilter])
+
   const groupedItems = useMemo(() => {
     const map = {}
     filteredItems.forEach(i => { if (!map[i.category]) map[i.category] = []; map[i.category].push(i) })
@@ -84,11 +97,12 @@ export const MenuEditor = () => {
   }, [filteredItems])
 
   const stats = useMemo(() => ({
-    total: items.length,
+    total: items.filter(item => !isComboItem(item)).length,
+    combos: items.filter(item => isComboItem(item)).length,
     cats: categories.length,
     bestsellers: items.filter(i => i.badge === 'bestseller').length,
     outOfStock: items.filter(i => i.availability?.status === 'out-of-stock' || !i.isAvailable).length,
-    avgPrice: items.length ? Math.round(items.reduce((s, i) => s + i.price, 0) / items.length) : 0,
+    avgPrice: items.length ? Math.round(items.filter(item => !isComboItem(item)).reduce((s, i) => s + i.price, 0) / Math.max(1, items.filter(item => !isComboItem(item)).length)) : 0,
   }), [items, categories])
 
   const toggleCat = (cat) => setCollapsedCats(p => ({ ...p, [cat]: !p[cat] }))
@@ -104,6 +118,19 @@ export const MenuEditor = () => {
   }
 
   const closeModal = () => { setShowModal(false); setEditingItem(null) }
+
+  const openComboBuilder = (combo = null) => {
+    navigate('/owner/menu/combo-builder', combo ? { state: { combo } } : undefined)
+  }
+
+  const openEditItem = (item) => {
+    if (isComboItem(item)) {
+      openComboBuilder(item)
+      return
+    }
+    setEditingItem(item)
+    setShowModal(true)
+  }
 
   const confirmDelete = async () => {
     try { await menuAPI.deleteItem(deleteModal.itemId); toast.success('Deleted'); fetchMenu() }
@@ -147,20 +174,32 @@ export const MenuEditor = () => {
   if (loading) return <PageLoader message="Loading menu..." />
 
   const ItemCard = ({ item, idx }) => {
-    const badgeMeta = item.badge && item.badge !== 'none' ? BADGE_META[item.badge] : null
     const isOOS = item.availability?.status === 'out-of-stock' || !item.isAvailable
-    const displayPrice = item.offerPrice > 0 ? item.offerPrice : item.price
+    const priceInfo = getDisplayPriceInfo(item)
+    const displayPrice = priceInfo.hasVariants ? priceInfo.minPrice : priceInfo.display
+    const isCombo = isComboItem(item)
+    const comboInfo = isCombo ? getComboPresentation(item) : null
+    const comboTags = isCombo ? getComboTagList(item) : []
 
     return (
       <motion.div initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: idx * 0.03 }}>
-        <Card hover className={cn('h-full flex flex-col group overflow-hidden', isOOS && 'opacity-60')}>
+        <Card
+          hover
+          className={cn(
+            'h-full flex flex-col group overflow-hidden transition-all',
+            isCombo
+              ? 'border-emerald-500/20 bg-gradient-to-br from-emerald-500/8 via-white to-amber-500/8 dark:from-emerald-500/10 dark:via-surface-900/40 dark:to-amber-500/10 shadow-[0_0_0_1px_rgba(16,185,129,0.08)]'
+              : 'bg-white dark:bg-surface-900/50',
+            isOOS && 'opacity-60'
+          )}
+        >
           <div className="relative h-36 overflow-hidden">
             {item.image ? (
               <><img src={item.image} alt={item.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.06]" /><div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" /></>
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-surface-100 via-surface-50 to-surface-200 dark:from-surface-900 dark:via-surface-900/60 dark:to-surface-800"><div className="absolute inset-0 bg-dot-pattern opacity-30" /></div>
             )}
-            {badgeMeta && <div className="absolute top-2 left-2 z-10"><Badge variant={badgeMeta.color} size="sm"><badgeMeta.icon className="w-3 h-3 mr-0.5" />{badgeMeta.label}</Badge></div>}
+            {isCombo && <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-emerald-400 via-lime-400 to-amber-400" />}
             {isOOS && <div className="absolute top-2 right-2 z-10"><Badge variant="danger" size="sm">Out of Stock</Badge></div>}
             <div className="absolute top-2 right-2 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity z-10">
               <button onClick={() => { setEditingItem(item); setShowModal(true) }} className="p-1.5 rounded-lg bg-white/90 dark:bg-surface-950/70 backdrop-blur border border-surface-200/80 dark:border-surface-700/50 text-surface-600 dark:text-surface-300 hover:text-primary-500 transition-colors"><Edit className="w-3.5 h-3.5" /></button>
@@ -169,20 +208,42 @@ export const MenuEditor = () => {
           </div>
           <div className="p-3.5 flex flex-col flex-1">
             <div className="flex items-start justify-between gap-2 mb-1">
-              <h3 className="font-semibold text-sm text-surface-900 dark:text-surface-100 leading-tight line-clamp-1">{item.name}</h3>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5 mb-1 flex-wrap">
+                  {isCombo && <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">Combo</span>}
+                  {comboTags.slice(0, 2).map(tag => (
+                    <span key={tag} className="text-[10px] font-semibold text-surface-500 dark:text-surface-400">{tag}</span>
+                  ))}
+                </div>
+                <h3 className="font-semibold text-sm text-surface-900 dark:text-surface-100 leading-tight line-clamp-1">{item.name}</h3>
+                {isCombo && comboInfo?.summaryText && <p className="text-[11px] text-surface-500 line-clamp-1 mt-0.5">{comboInfo.summaryText}</p>}
+              </div>
               <div className="text-right flex-shrink-0">
-                {item.comparePrice > 0 && <p className="text-[10px] text-surface-400 line-through">{formatCurrency(item.comparePrice, item.currency)}</p>}
-                <p className="font-bold text-primary-600 dark:text-primary-400 text-sm">{formatCurrency(displayPrice, item.currency)}</p>
+                {isCombo && comboInfo?.comboType !== 'custom' && comboInfo?.regularTotal > comboInfo?.comboPrice ? (
+                  <p className="text-[10px] text-surface-400 line-through">{formatCurrency(comboInfo.regularTotal, item.currency)}</p>
+                ) : !isCombo && item.comparePrice > 0 && <p className="text-[10px] text-surface-400 line-through">{formatCurrency(item.comparePrice, item.currency)}</p>}
+                <p className="font-bold text-primary-600 dark:text-primary-400 text-sm">
+                  {isCombo && comboInfo?.comboType === 'custom'
+                    ? `From ${formatCurrency(comboInfo?.startingFrom || 0, item.currency)}`
+                    : isCombo ? formatCurrency(comboInfo?.comboPrice ?? displayPrice, item.currency) : (priceInfo.hasVariants ? `Starts at ${formatCurrency(displayPrice, item.currency)}` : formatCurrency(displayPrice, item.currency))}
+                </p>
+                {isCombo && comboInfo?.comboType !== 'custom' && comboInfo?.savings > 0 && <p className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">Save {formatCurrency(comboInfo.savings, item.currency)}</p>}
               </div>
             </div>
             {item.description && <p className="text-xs text-surface-500 line-clamp-2 mb-2">{item.description}</p>}
             <div className="mt-auto flex items-center gap-1.5 flex-wrap">
               {item.isVeg !== undefined && <span className={cn('w-4 h-4 rounded border-2 flex items-center justify-center', item.isVeg ? 'border-emerald-500' : 'border-red-500')}><span className={cn('w-1.5 h-1.5 rounded-full', item.isVeg ? 'bg-emerald-500' : 'bg-red-500')} /></span>}
-              {item.variants?.length > 0 && <Badge variant="gray" size="sm"><Layers className="w-3 h-3 mr-0.5" />{item.variants.length}</Badge>}
-              {item.addons?.length > 0 && <Badge variant="gray" size="sm"><Plus className="w-3 h-3 mr-0.5" />{item.addons.length}</Badge>}
+              {isCombo && comboInfo?.summaryText && <span className="text-[11px] font-semibold text-surface-500 dark:text-surface-400">{comboInfo.summaryText}</span>}
             </div>
             <div className="flex gap-1.5 mt-2.5 lg:hidden">
-              <Button size="xs" variant="ghost" className="flex-1 border border-surface-200 dark:border-surface-700" onClick={() => { setEditingItem(item); setShowModal(true) }}>Edit</Button>
+              <Button
+                size="xs"
+                variant="ghost"
+                className="flex-1 border border-surface-200 dark:border-surface-700"
+                onClick={() => openEditItem(item)}
+              >
+                Edit
+              </Button>
               <Button size="xs" variant="ghost" className="flex-1 border border-surface-200 dark:border-surface-700 text-red-500" onClick={() => setDeleteModal({ isOpen: true, itemId: item.id })}>Delete</Button>
             </div>
           </div>
@@ -197,17 +258,18 @@ export const MenuEditor = () => {
         <div className="flex flex-wrap gap-2">
           {items.length > 0 && <Button variant="danger" size="sm" onClick={() => setDeleteAllModal(true)} leftIcon={<Trash2 className="w-4 h-4" />}>Delete All</Button>}
           <Button variant="outline" size="sm" leftIcon={<Sparkles className="w-4 h-4" />} onClick={() => setShowUploadModal(true)}>Upload Menu</Button>
+          <Button variant="outline" size="sm" leftIcon={<Plus className="w-4 h-4" />} onClick={() => openComboBuilder(null)}>Create Combo</Button>
           <Button variant="gradient" size="sm" leftIcon={<Plus className="w-4 h-4" />} onClick={() => { setEditingItem(null); setShowModal(true) }}>Add Item</Button>
         </div>
       } />
 
       {/* Stats */}
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <MiniStat icon={Package} label="Total Items" value={stats.total} color="primary" />
+        <MiniStat icon={Package} label="Menu Items" value={stats.total} color="primary" />
+        <MiniStat icon={Sparkles} label="Combos" value={stats.combos} color="emerald" />
         <MiniStat icon={Grid3X3} label="Categories" value={stats.cats} color="violet" />
         <MiniStat icon={Star} label="Bestsellers" value={stats.bestsellers} color="amber" />
         <MiniStat icon={X} label="Out of Stock" value={stats.outOfStock} color="surface" />
-        <MiniStat icon={DollarSign} label="Avg Price" value={formatCurrency(stats.avgPrice)} color="emerald" />
       </motion.div>
 
       {/* Filters Bar */}
@@ -231,10 +293,60 @@ export const MenuEditor = () => {
         </div>
       </Card>
 
-      {/* Content */}
-      {filteredItems.length === 0 ? (
+      {/* Combos Section */}
+      {filteredCombos.length > 0 && (
+        <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+          <div className="flex items-center gap-3 mb-3">
+            <Sparkles className="w-4 h-4 text-emerald-500" />
+            <h2 className="text-base font-bold text-surface-900 dark:text-surface-100">Combos</h2>
+            <Badge variant="success" size="sm">{filteredCombos.length}</Badge>
+            <div className="h-px flex-1 bg-surface-200/80 dark:bg-surface-700/50" />
+            <Button size="xs" variant="outline" onClick={() => openComboBuilder(null)} leftIcon={<Plus className="w-3 h-3" />}>New Combo</Button>
+          </div>
+          {/* Sub-filters */}
+          <div className="flex items-center gap-2 mb-4">
+            {['all', 'fixed', 'custom'].map(f => (
+              <button key={f} onClick={() => setComboFilter(f)}
+                className={cn('px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border',
+                  comboFilter === f
+                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                    : 'text-surface-500 border-surface-200 dark:border-surface-700 hover:border-surface-300'
+                )}>
+                {f === 'all' ? 'All Combos' : f === 'fixed' ? 'Fixed' : 'Custom'}
+              </button>
+            ))}
+          </div>
+          <div className={cn(viewMode === 'grid' ? 'grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4' : 'space-y-2')}>
+            {filteredCombos.map((item, idx) => viewMode === 'grid' ? (
+              <ItemCard key={item.id} item={item} idx={idx} />
+            ) : (
+              <motion.div key={item.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: idx * 0.02 }}
+                className="group flex items-center gap-3 p-3 rounded-xl border border-emerald-200/50 dark:border-emerald-700/30 bg-emerald-50/50 dark:bg-emerald-500/5 hover:bg-emerald-50 dark:hover:bg-emerald-500/10 transition-all">
+                {item.image && <img src={item.image} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-sm text-surface-900 dark:text-surface-100 truncate">{item.name}</p>
+                    <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">{item.comboType === 'custom' ? 'Custom' : 'Fixed'}</span>
+                  </div>
+                  <p className="text-xs text-surface-500 truncate">{item.description || '—'}</p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <p className="font-bold text-sm text-emerald-600 dark:text-emerald-400">{item.comboType === 'custom' ? `From ${formatCurrency(0)}` : formatCurrency(item.sellingPrice || item.price)}</p>
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={() => openEditItem(item)} className="p-1.5 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 text-surface-400 hover:text-primary-500 transition-colors"><Edit className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => setDeleteModal({ isOpen: true, itemId: item.id })} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-surface-400 hover:text-red-500 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Regular Menu Categories */}
+      {filteredItems.length === 0 && filteredCombos.length === 0 ? (
         <EmptyState title={items.length === 0 ? 'No menu items yet' : 'No items match'} description={items.length === 0 ? 'Upload a photo or add items manually.' : 'Try different search or filters.'} actionLabel="Add First Item" onAction={() => { setEditingItem(null); setShowModal(true) }} />
-      ) : (
+      ) : filteredItems.length > 0 ? (
         <div className="space-y-6">
           {Object.entries(groupedItems).map(([cat, catItems], ci) => (
             <motion.div key={cat} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: ci * 0.05 }}>
@@ -256,16 +368,13 @@ export const MenuEditor = () => {
                           className="group flex items-center gap-3 p-3 rounded-xl border border-surface-200/80 dark:border-surface-700/40 bg-white/70 dark:bg-surface-900/30 hover:bg-surface-50 dark:hover:bg-surface-800/30 hover:-translate-y-0.5 hover:shadow-sm transition-all">
                           {item.image && <img src={item.image} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />}
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2"><p className="font-semibold text-sm text-surface-900 dark:text-surface-100 truncate">{item.name}</p>
-                              {item.badge && item.badge !== 'none' && BADGE_META[item.badge] && <Badge variant={BADGE_META[item.badge].color} size="sm">{BADGE_META[item.badge].label}</Badge>}
-                            </div>
+                            <p className="font-semibold text-sm text-surface-900 dark:text-surface-100 truncate">{item.name}</p>
                             <p className="text-xs text-surface-500 truncate">{item.description || '—'}</p>
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
-                            {item.variants?.length > 0 && <Badge variant="gray" size="sm">{item.variants.length}v</Badge>}
                             <p className="font-bold text-sm text-primary-600 dark:text-primary-400">{formatCurrency(item.offerPrice > 0 ? item.offerPrice : item.price, item.currency)}</p>
                             <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button onClick={() => { setEditingItem(item); setShowModal(true) }} className="p-1.5 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 text-surface-400 hover:text-primary-500 transition-colors"><Edit className="w-3.5 h-3.5" /></button>
+                              <button onClick={() => openEditItem(item)} className="p-1.5 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 text-surface-400 hover:text-primary-500 transition-colors"><Edit className="w-3.5 h-3.5" /></button>
                               <button onClick={() => setDeleteModal({ isOpen: true, itemId: item.id })} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-500/10 text-surface-400 hover:text-red-500 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
                             </div>
                           </div>
@@ -278,7 +387,7 @@ export const MenuEditor = () => {
             </motion.div>
           ))}
         </div>
-      )}
+      ) : null}
 
       {/* Add/Edit Item Modal */}
       <AddItemModal isOpen={showModal} onClose={closeModal} onSave={handleSaveItem} editingItem={editingItem} categories={categories} loading={savingItem} />

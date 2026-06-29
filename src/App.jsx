@@ -25,8 +25,10 @@ import { QRGenerator } from '@admin/pages/QRGenerator'
 import { QRCustomizer } from '@admin/pages/QRCustomizer'
 import { QRDesigner } from '@admin/pages/QRDesigner'
 import { MenuEditor } from '@admin/pages/MenuEditor'
+import { ComboBuilderPage } from '@admin/pages/ComboBuilderPage'
 import { EditProfile } from '@admin/pages/EditProfile'
 import { Settings } from '@admin/pages/Settings'
+import { ManagerControl } from '@admin/pages/ManagerControl'
 import { Login } from '@admin/pages/Login'
 import { Staff } from '@admin/pages/Staff'
 import { Inventory } from '@admin/pages/Inventory'
@@ -38,6 +40,17 @@ const ProtectedRoute = ({ children }) => {
   if (loading) return <PageLoader message="Preparing your dashboard..." />
 
   return isAuthenticated ? children : <Navigate to="/owner/login" replace />
+}
+
+const PermissionRoute = ({ permission, children }) => {
+  const { user, loading, isAuthenticated } = useAuth()
+
+  if (loading) return <PageLoader message="Preparing your dashboard..." />
+  if (!isAuthenticated) return <Navigate to="/owner/login" replace />
+  if (user?.role !== 'staff') return children
+  if (!permission || user?.permissions?.includes(permission)) return children
+
+  return <Navigate to="/owner/dashboard" replace />
 }
 
 function App() {
@@ -74,10 +87,19 @@ function App() {
               <Route path="orders" element={<Orders />} />
               <Route path="billing" element={<Billing />} />
               <Route path="menu" element={<MenuEditor />} />
+              <Route path="menu/combo-builder" element={<ComboBuilderPage />} />
               <Route path="qr" element={<QRGenerator />} />
               <Route path="qr/customize" element={<QRCustomizer />} />
               <Route path="qr/designer" element={<QRDesigner />} />
               <Route path="profile" element={<EditProfile />} />
+              <Route
+                path="manager-control"
+                element={
+                  <PermissionRoute permission="manager-control">
+                    <ManagerControl />
+                  </PermissionRoute>
+                }
+              />
               <Route path="settings" element={<Settings />} />
               <Route path="analytics" element={<Analytics />} />
               <Route path="staff" element={<Staff />} />

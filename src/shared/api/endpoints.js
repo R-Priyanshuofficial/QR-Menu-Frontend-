@@ -42,6 +42,12 @@ export const ordersAPI = {
   markOrderCompleted: (orderId) => api.put(`/orders/${orderId}/complete`),
 }
 
+// Session billing endpoints
+export const sessionsAPI = {
+  getBillingSessions: (params = {}) => api.get('/sessions/billing', { params }),
+  finalizeSession: (sessionId, payload = {}) => api.post(`/sessions/${sessionId}/finalize`, payload),
+}
+
 // QR Code endpoints
 export const qrAPI = {
   generate: (qrData) => api.post('/qr/generate', qrData),
@@ -61,6 +67,7 @@ export const dashboardAPI = {
   getStats: () => api.get('/dashboard/stats'),
   getActivity: () => api.get('/dashboard/activity'),
   getQRSummary: () => api.get('/dashboard/qr-summary'),
+  getManagerControlOverview: () => api.get('/dashboard/manager-control'),
 }
 
 // Analytics endpoints
@@ -90,6 +97,7 @@ export default {
   staff: staffAPI,
   menu: menuAPI,
   orders: ordersAPI,
+  sessions: sessionsAPI,
   qr: qrAPI,
   dashboard: dashboardAPI,
   analytics: analyticsAPI,

@@ -90,6 +90,19 @@ export const CartDrawer = () => {
                                   ))}
                                 </div>
                               )}
+                              {item.comboSelections?.length > 0 && (
+                                <div className="mt-0.5 space-y-0.5">
+                                  {item.comboSelections.map(selection => (
+                                    <p key={`${selection.groupId || selection.groupName}-${selection.itemId || selection.name}`} className="text-[11px] text-emerald-400 font-medium">
+                                      {selection.groupName ? `${selection.groupName}: ` : ''}
+                                      {selection.name}
+                                    </p>
+                                  ))}
+                                </div>
+                              )}
+                              {item.notes && (
+                                <p className="text-[10px] text-zinc-400 italic mt-1 bg-black/20 p-1 rounded border border-white/5 line-clamp-2">"{item.notes}"</p>
+                              )}
                             </div>
                             <button onClick={() => removeItem(cartKey)} className="text-zinc-600 hover:text-red-400 transition-colors flex-shrink-0 mt-0.5">
                               <Trash2 className="w-4 h-4" />
@@ -110,8 +123,13 @@ export const CartDrawer = () => {
                               </button>
                             </div>
 
-                            {/* Price */}
-                            <span className="text-sm font-bold text-white">{formatCurrency(itemPrice * item.quantity, item.currency)}</span>
+                            {/* Price Breakdown */}
+                            <div className="text-right">
+                              {item.quantity > 1 && (
+                                <p className="text-[10px] text-zinc-500 font-medium mb-0.5">{formatCurrency(itemPrice, item.currency)} each</p>
+                              )}
+                              <span className="text-sm font-bold text-white">{formatCurrency(itemPrice * item.quantity, item.currency)}</span>
+                            </div>
                           </div>
                         </div>
                       </div>

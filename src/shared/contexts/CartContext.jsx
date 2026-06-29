@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
+import { calculateUnitPrice } from '@shared/utils/priceEngine'
 import toast from 'react-hot-toast'
 
 const CartContext = createContext(null)
@@ -18,11 +19,12 @@ export const CartProvider = ({ children }) => {
     localStorage.setItem('cart', JSON.stringify(items))
   }, [items])
 
-  // Generate a unique cart key from item + variant + addons
+  // Generate a unique cart key from item + variant + addons + combo selections
   const getCartKey = (item) => {
     const variantPart = item.selectedVariant?.name || ''
     const addonsPart = (item.selectedAddons || []).map(a => a.name).sort().join(',')
-    return `${item.id}__${variantPart}__${addonsPart}`
+    const comboPart = (item.comboSelections || []).map(selection => `${selection.groupId || selection.groupName || ''}:${selection.itemId || selection.name || ''}`).sort().join('|')
+    return `${item.id}__${variantPart}__${addonsPart}__${comboPart}`
   }
 
   const addItem = (item) => {
@@ -59,12 +61,24 @@ export const CartProvider = ({ children }) => {
     )
   }
 
+  const replaceItem = (cartKey, item) => {
+    setItems((prev) => {
+      const nextItem = { ...item, _cartKey: getCartKey(item), quantity: item.quantity || 1 }
+      const index = prev.findIndex((entry) => entry._cartKey === cartKey || entry.id === cartKey)
+      if (index < 0) return prev
+
+      const next = [...prev]
+      next[index] = nextItem
+      toast.success(`${item.name} updated`)
+      return next
+    })
+  }
+
   const clearCart = () => { setItems([]); toast.success('Cart cleared') }
 
+  // Use centralized price engine for consistent pricing
   const getItemPrice = (item) => {
-    const base = item.selectedVariant?.price || item.price || 0
-    const addonsTotal = (item.selectedAddons || []).reduce((s, a) => s + (a.price || 0), 0)
-    return base + addonsTotal
+    return calculateUnitPrice(item, item.selectedVariant, item.selectedAddons)
   }
 
   const getTotalAmount = () => items.reduce((total, item) => total + getItemPrice(item) * item.quantity, 0)
@@ -75,7 +89,7 @@ export const CartProvider = ({ children }) => {
 
   const value = {
     items, isOpen, addItem, removeItem, updateQuantity, clearCart,
-    getTotalAmount, getTotalItems, getItemPrice, openCart, closeCart,
+    replaceItem, getTotalAmount, getTotalItems, getItemPrice, openCart, closeCart,
   }
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>

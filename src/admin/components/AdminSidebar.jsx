@@ -9,6 +9,7 @@ import {
   LogOut,
   Users,
   Package,
+  Activity,
   ChevronLeft,
   ChevronRight,
   AlignJustify,
@@ -44,6 +45,7 @@ const navSections = [
     items: [
       { to: '/owner/inventory', icon: Package, label: 'Inventory', permission: 'inventory' },
       { to: '/owner/staff', icon: Users, label: 'Staff', permission: 'staff' },
+      { to: '/owner/manager-control', icon: Activity, label: 'Manager Control', permission: 'manager-control' },
       { to: '/owner/settings', icon: Settings, label: 'Settings', permission: 'settings' },
     ],
   },

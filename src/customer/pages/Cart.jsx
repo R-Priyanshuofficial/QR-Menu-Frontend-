@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ShoppingBag, User, Phone, Trash2, ChevronLeft, CreditCard, Banknote } from 'lucide-react'
+import { ShoppingBag, User, Phone, Trash2, ChevronLeft, Banknote, Edit3 } from 'lucide-react'
 import { useCart } from '@shared/contexts/CartContext'
 import { formatCurrency } from '@shared/utils/formatters'
 import { isValidName, isValidPhone } from '@shared/utils/validators'
@@ -9,6 +9,7 @@ import toast from 'react-hot-toast'
 import { motion, AnimatePresence } from 'framer-motion'
 import { registerPushSubscription } from '@shared/utils/pushNotifications'
 import { cn } from '@shared/utils/cn'
+import { ItemDetailModal } from '../components/ItemDetailModal'
 
 export const Cart = () => {
   const { menuSlug, token } = useParams()
@@ -20,6 +21,8 @@ export const Cart = () => {
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [editingItem, setEditingItem] = useState(null)
+  const [editingCartKey, setEditingCartKey] = useState(null)
 
   const validateForm = () => {
     const newErrors = {}
@@ -46,6 +49,19 @@ export const Cart = () => {
           name: item.name,
           variant: item.selectedVariant?.name || null,
           addons: (item.selectedAddons || []).map(a => a.name),
+          comboSelections: (item.comboSelections || []).map(selection => ({
+            groupId: selection.groupId || '',
+            groupName: selection.groupName || '',
+            itemId: selection.itemId || null,
+            name: selection.name || '',
+            quantity: selection.quantity || 1,
+            price: selection.price || 0,
+          })),
+          comboType: item.comboType || null,
+          comboBasePrice: item.comboBasePrice ?? null,
+          comboRegularTotal: item.comboRegularTotal ?? null,
+          comboSavings: item.comboSavings ?? null,
+          notes: item.notes || null,
           price: getItemPrice(item),
           quantity: item.quantity,
         })),
@@ -177,14 +193,32 @@ export const Cart = () => {
                         ))}
                       </div>
                     )}
-                    <div className="flex items-center gap-2 mt-1.5">
-                      <span className="text-xs text-zinc-500">{formatCurrency(itemPrice, item.currency)} × {item.quantity}</span>
+                    {item.notes && (
+                      <p className="text-[10px] text-zinc-400 italic mt-1 bg-black/20 p-1.5 rounded border border-white/5 line-clamp-3">"{item.notes}"</p>
+                    )}
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-xs font-medium text-zinc-500">{formatCurrency(itemPrice, item.currency)} × {item.quantity}</span>
+                      <span className="text-zinc-600 text-xs">=</span>
+                      <span className="text-sm font-bold text-white">{formatCurrency(itemPrice * item.quantity, item.currency)}</span>
                     </div>
-                    <p className="text-sm font-bold text-white mt-1">{formatCurrency(itemPrice * item.quantity, item.currency)}</p>
                   </div>
-                  <button onClick={() => removeItem(cartKey)} className="text-zinc-600 hover:text-red-400 transition-colors mt-0.5">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex flex-col items-center gap-2 mt-0.5">
+                    {(item.comboSelections?.length > 0 || item.selectedVariant || item.selectedAddons?.length > 0 || item.comboType) && (
+                      <button
+                        onClick={() => {
+                          setEditingItem(item)
+                          setEditingCartKey(cartKey)
+                        }}
+                        className="text-zinc-500 hover:text-violet-300 transition-colors"
+                        aria-label={`Edit ${item.name}`}
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                    )}
+                    <button onClick={() => removeItem(cartKey)} className="text-zinc-600 hover:text-red-400 transition-colors">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               )
             })}
@@ -279,6 +313,17 @@ export const Cart = () => {
           </div>
         )}
       </AnimatePresence>
+
+      <ItemDetailModal
+        item={editingItem}
+        isOpen={!!editingItem}
+        onClose={() => {
+          setEditingItem(null)
+          setEditingCartKey(null)
+        }}
+        initialSelection={editingItem}
+        editingCartKey={editingCartKey}
+      />
     </div>
   )
 }

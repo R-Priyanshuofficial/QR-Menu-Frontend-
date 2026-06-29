@@ -22,6 +22,7 @@ const breadcrumbLabels = {
   'billing': 'Billing',
   'inventory': 'Inventory',
   'staff': 'Staff',
+  'manager-control': 'Manager Control',
   'settings': 'Settings',
   'profile': 'Profile',
 }
