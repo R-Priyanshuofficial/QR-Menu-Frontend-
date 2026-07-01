@@ -798,7 +798,7 @@ export const ItemDetailModal = ({ item, isOpen, onClose, initialSelection = null
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: '100%', opacity: 0 }}
             transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-            className="relative w-full max-w-2xl max-h-[92vh] bg-[#0A0F1E] rounded-t-3xl sm:rounded-3xl overflow-hidden flex flex-col z-10 shadow-2xl border border-white/[0.06]"
+            className="relative w-full h-[100dvh] sm:h-[94vh] max-w-5xl sm:max-h-[94vh] bg-[#0A0F1E] sm:rounded-3xl overflow-hidden flex flex-col z-10 shadow-2xl border border-white/[0.06]"
           >
             <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
               {isCombo ? renderComboSection() : renderNormalSection()}
