@@ -106,6 +106,21 @@ export const ItemDetailModal = ({ item, isOpen, onClose, initialSelection = null
     const selected = selectedComboItems[group.id] || []
     return selected.length >= group.minSelections && selected.length <= group.maxSelections
   })
+  const currentSelectionPrice = useMemo(() => {
+    if (!isCustomCombo) return comboPresentation.currentPrice
+
+    return comboGroups.reduce((sum, group) => {
+      const selectedIds = selectedComboItems[group.id] || []
+      if (!selectedIds.length) return sum
+
+      const selectedTotal = selectedIds.reduce((groupSum, itemId) => {
+        const option = group.options.find(entry => entry.itemId === itemId)
+        return groupSum + (option?.price || 0)
+      }, 0)
+
+      return sum + selectedTotal
+    }, 0)
+  }, [comboGroups, comboPresentation.currentPrice, isCustomCombo, selectedComboItems])
   const badgeList = useMemo(() => renderBadgeList(item), [item])
   const comboTags = useMemo(() => {
     const tags = Array.isArray(item?.tags) ? item.tags : []
@@ -134,12 +149,12 @@ export const ItemDetailModal = ({ item, isOpen, onClose, initialSelection = null
 
   const unitPrice = useMemo(() => {
     if (!item) return 0
-    if (isCombo && isCustomCombo) return displayUnitPrice
+    if (isCombo && isCustomCombo) return currentSelectionPrice
     if (isCombo) return comboPresentation.comboPrice || item?.sellingPrice || item?.price || 0
     const base = selectedVariant?.price || item?.price || 0
     const addonsTotal = selectedAddons.reduce((sum, addon) => sum + (addon.price || 0), 0)
     return base + addonsTotal
-  }, [selectedVariant, selectedAddons, item, isCombo, isCustomCombo, comboPresentation, displayUnitPrice])
+  }, [selectedVariant, selectedAddons, item, isCombo, isCustomCombo, comboPresentation.comboPrice, currentSelectionPrice])
 
   const totalPrice = unitPrice * quantity
 
@@ -261,16 +276,29 @@ export const ItemDetailModal = ({ item, isOpen, onClose, initialSelection = null
           </button>
         </div>
 
-        <div className="text-right min-w-0">
+        <div className="text-right min-w-0 space-y-2">
           {comboPresentation.savings > 0 && (
             <p className="text-[10px] font-semibold text-emerald-400">
               Save {formatCurrency(comboPresentation.savings, item.currency)}
             </p>
           )}
-          {renderPriceLabel('sm')}
-          {quantity > 1 && displayUnitPrice > 0 && (
-            <p className="text-[10px] text-zinc-500 mt-0.5">
-              Total {formatCurrency(totalPrice, item.currency)}
+          <div className="space-y-0.5">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">Starting From</p>
+            <p className="text-sm font-bold text-violet-300 leading-none">
+              {formatCurrency(comboPresentation.startingFrom, item.currency)}
+            </p>
+          </div>
+          <div className="space-y-0.5">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-500">
+              {comboValid ? 'Final Total' : 'Current Selection'}
+            </p>
+            <p className={cn('text-2xl font-black leading-none', comboValid ? 'text-white' : 'text-violet-200')}>
+              {formatCurrency(currentSelectionPrice, item.currency)}
+            </p>
+          </div>
+          {quantity > 1 && currentSelectionPrice > 0 && (
+            <p className="text-[10px] text-zinc-500">
+              Total {formatCurrency(currentSelectionPrice * quantity, item.currency)}
             </p>
           )}
         </div>
@@ -290,7 +318,7 @@ export const ItemDetailModal = ({ item, isOpen, onClose, initialSelection = null
       >
         <ShoppingBag className="w-5 h-5" />
         {canAddToCart
-          ? `${editingCartKey ? 'Update Cart' : 'Add to Cart'}${displayUnitPrice > 0 ? ` · ${formatCurrency(totalPrice, item.currency)}` : ''}`
+          ? `${editingCartKey ? 'Update Cart' : 'Add to Cart'}${currentSelectionPrice > 0 ? ` • ${formatCurrency(currentSelectionPrice * quantity, item.currency)}` : ''}`
           : isCustomCombo ? 'Complete all required selections' : 'Unavailable'
         }
       </button>
