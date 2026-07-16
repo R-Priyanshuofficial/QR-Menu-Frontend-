@@ -47,8 +47,14 @@ export const Cart = () => {
         items: items.map((item) => ({
           itemId: item.id,
           name: item.name,
-          variant: item.selectedVariant?.name || null,
-          addons: (item.selectedAddons || []).map(a => a.name),
+          variant: item.selectedVariant
+            ? { name: item.selectedVariant.name, price: item.selectedVariant.price ?? 0 }
+            : null,
+          addons: (item.selectedAddons || []).map(a => ({
+            name: a.name,
+            itemId: a.itemId || a.id || null,
+            price: a.price ?? a.finalPrice ?? a.additionalPrice ?? a.priceAdjustment ?? a.optionPrice ?? 0,
+          })),
           comboSelections: (item.comboSelections || []).map(selection => ({
             groupId: selection.groupId || '',
             groupName: selection.groupName || '',

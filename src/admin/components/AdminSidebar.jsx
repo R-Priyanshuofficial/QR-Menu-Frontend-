@@ -85,7 +85,7 @@ export const AdminSidebar = ({ isOpen, onClose, collapsed, onToggleCollapse }) =
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed lg:static inset-y-0 left-0 z-50',
+          'fixed lg:static inset-y-0 left-0 z-50 lg:h-screen',
           'flex flex-col',
           'bg-white dark:bg-surface-950 lg:bg-white/95 dark:lg:bg-surface-950/95',
           'border-r border-surface-200/80 dark:border-surface-800/40',

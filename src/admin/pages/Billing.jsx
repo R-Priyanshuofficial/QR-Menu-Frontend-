@@ -157,7 +157,7 @@ export const Billing = () => {
     try {
       setLoading(true)
       const response = await sessionsAPI.getBillingSessions({ period: dateFilter, status: 'all' })
-      const sessionBills = response?.data?.bills || response?.bills || []
+      const sessionBills = response?.data?.bills || response?.data?.data?.bills || []
       setBills(sessionBills)
       setFilteredBills(sessionBills)
     } catch (error) {

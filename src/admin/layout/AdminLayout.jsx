@@ -88,7 +88,7 @@ export const AdminLayout = () => {
   }
 
   return (
-    <div className="min-h-screen bg-surface-50 dark:bg-surface-950 flex text-surface-900 dark:text-surface-100">
+    <div className="h-screen overflow-hidden bg-surface-50 dark:bg-surface-950 flex text-surface-900 dark:text-surface-100">
       {/* Sidebar */}
       <AdminSidebar
         isOpen={sidebarOpen}
@@ -98,10 +98,10 @@ export const AdminLayout = () => {
       />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-x-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Bar */}
         <header className={cn(
-          'sticky top-0 z-30',
+          'flex-shrink-0 z-30',
           'bg-white/90 dark:bg-surface-950/80',
           'backdrop-blur-premium',
           'border-b border-surface-200/80 dark:border-surface-800/40',
@@ -347,7 +347,7 @@ export const AdminLayout = () => {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8 min-w-0 overflow-x-hidden">
+        <main className="flex-1 px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8 min-w-0 overflow-y-auto overflow-x-hidden">
           <Outlet />
         </main>
       </div>

@@ -413,6 +413,33 @@
   background: rgba(71, 85, 105, 0.75);
 }
 
+/* ─── Order Card Premium Scrollbar ─── */
+.order-card-scroll {
+  scrollbar-width: thin;
+  scroll-behavior: smooth;
+  scrollbar-color: rgba(71, 85, 105, 0.45) transparent;
+}
+.order-card-scroll:hover {
+  scrollbar-color: rgba(100, 116, 139, 0.65) transparent;
+}
+.order-card-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.order-card-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.order-card-scroll::-webkit-scrollbar-thumb {
+  background: rgba(71, 85, 105, 0.45);
+  border-radius: 999px;
+  transition: background 0.2s;
+}
+.order-card-scroll:hover::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.65);
+}
+.order-card-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.6);
+}
+
 /* ─── Skeleton Animation ─── */
 @keyframes shimmer {
   0% { background-position: -1000px 0; }

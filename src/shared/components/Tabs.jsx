@@ -1,7 +1,9 @@
+import { useId } from 'react'
 import { cn } from '../utils/cn'
 import { motion } from 'framer-motion'
 
 export const Tabs = ({ tabs, activeTab, onChange, variant = 'pills', className }) => {
+  const instanceId = useId()
   const variants = {
     pills: 'bg-surface-100/90 dark:bg-surface-800/40 p-1 rounded-xl border border-surface-300/80 dark:border-surface-700/30',
     underline: 'border-b border-surface-300/80 dark:border-surface-700/40',
@@ -21,13 +23,14 @@ export const Tabs = ({ tabs, activeTab, onChange, variant = 'pills', className }
           isActive={activeTab === tab.value}
           onClick={() => onChange(tab.value)}
           variant={variant}
+          instanceId={instanceId}
         />
       ))}
     </div>
   )
 }
 
-const TabButton = ({ tab, isActive, onClick, variant }) => {
+const TabButton = ({ tab, isActive, onClick, variant, instanceId }) => {
   return (
     <button
       onClick={onClick}
@@ -44,21 +47,21 @@ const TabButton = ({ tab, isActive, onClick, variant }) => {
       {/* Active indicator */}
       {isActive && variant === 'pills' && (
         <motion.div
-          layoutId="tab-pill"
+          layoutId={`tab-pill-${instanceId}`}
           className="absolute inset-0 bg-white dark:bg-surface-700/80 rounded-lg shadow-sm border border-surface-300/90 dark:border-surface-600/30"
           transition={{ type: 'spring', stiffness: 350, damping: 30 }}
         />
       )}
       {isActive && variant === 'underline' && (
         <motion.div
-          layoutId="tab-underline"
+          layoutId={`tab-underline-${instanceId}`}
           className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-500"
           transition={{ type: 'spring', stiffness: 350, damping: 30 }}
         />
       )}
       {isActive && variant === 'segment' && (
         <motion.div
-          layoutId="tab-segment"
+          layoutId={`tab-segment-${instanceId}`}
           className="absolute inset-0 bg-white dark:bg-surface-700/80 rounded-lg shadow-sm border border-surface-300/90 dark:border-surface-600/30"
           transition={{ type: 'spring', stiffness: 350, damping: 30 }}
         />
