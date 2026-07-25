@@ -76,8 +76,20 @@ export const CartProvider = ({ children }) => {
 
   const clearCart = () => { setItems([]); toast.success('Cart cleared') }
 
-  // Use centralized price engine for consistent pricing
+  // Use the finalized cart unit price for configured items. The item detail modal
+  // stores add-ons/variants in `price`, so recalculating would add add-ons twice.
   const getItemPrice = (item) => {
+    const hasConfiguredPrice = Boolean(
+      item?.selectedVariant
+      || item?.selectedAddons?.length
+      || item?.comboSelections?.length
+      || item?.comboType
+    )
+
+    if (hasConfiguredPrice && Number.isFinite(Number(item?.price))) {
+      return Number(item.price)
+    }
+
     return calculateUnitPrice(item, item.selectedVariant, item.selectedAddons)
   }
 

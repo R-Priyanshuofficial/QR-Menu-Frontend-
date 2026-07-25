@@ -194,7 +194,7 @@ const ITEMS_PER_PAGE = 8
 const OrdersContent = () => {
   const [loading, setLoading] = useState(true)
   const [orders, setOrders] = useState([])
-  const [filter, setFilter] = useState('all')
+  const [filter, setFilter] = useState('pending')
   const [searchInput, setSearchInput] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
   const [error, setError] = useState(null)
@@ -204,12 +204,12 @@ const OrdersContent = () => {
   const [showSortDropdown, setShowSortDropdown] = useState(false)
   const { socket, connected } = useSocket()
 
-  // Fetch all orders (we filter client-side for tab counts)
+  // Fetch all orders so tab counters stay accurate across every status.
   const fetchOrders = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
-      const response = await ordersAPI.getOwnerOrders(filter === 'all' ? undefined : filter)
+      const response = await ordersAPI.getOwnerOrders()
       setOrders(normalizeOrders(response?.data))
     } catch (fetchError) {
       console.error('Failed to load orders:', fetchError)
@@ -219,7 +219,7 @@ const OrdersContent = () => {
     } finally {
       setLoading(false)
     }
-  }, [filter])
+  }, [])
 
   useEffect(() => {
     let isActive = true
@@ -270,6 +270,11 @@ const OrdersContent = () => {
   const filteredOrders = useMemo(() => {
     let source = Array.isArray(safeOrders) ? safeOrders : []
 
+    // Status tab
+    if (filter !== 'all') {
+      source = source.filter((order) => order?.status === filter)
+    }
+
     // Search
     if (debouncedQuery.trim()) {
       const q = debouncedQuery.toLowerCase()
@@ -291,7 +296,7 @@ const OrdersContent = () => {
     }
 
     return source
-  }, [safeOrders, debouncedQuery, sortBy])
+  }, [safeOrders, filter, debouncedQuery, sortBy])
 
   // Tab counts
   const tabCounts = useMemo(() => {
